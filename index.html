@@ -978,18 +978,30 @@ function init(){
    }
  });
 
- // Recovery links commonly contain auth information in the URL fragment.
- // Give the Supabase client a moment to process that fragment before normal bootstrap.
- if(window.location.hash && (window.location.hash.includes("type=recovery") || window.location.hash.includes("access_token="))){
+ // Supabase email links return auth information in the URL fragment.
+ // Password recovery shows the password screen; magic links sign in normally.
+ const hash=window.location.hash || "";
+ if(hash.includes("access_token=")){
    setTimeout(async ()=>{
      const {data:{session}}=await db.auth.getSession();
-     if(session){
-       sessionUser=session.user;
-       showRecoveryScreen();
+     if(hash.includes("type=recovery")){
+       if(session){
+         sessionUser=session.user;
+         showRecoveryScreen();
+       }else{
+         showLoginScreen();
+         document.getElementById("authError").textContent="This password-reset link is invalid or has expired.";
+       }
      }else{
-       bootstrapCloud();
+       if(session){
+         history.replaceState(null,"",window.location.pathname);
+         await bootstrapCloud();
+       }else{
+         showLoginScreen();
+         document.getElementById("authError").textContent="This sign-in link is invalid or has expired.";
+       }
      }
-   },250);
+   },500);
  }else{
    bootstrapCloud();
  }
