@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Family Meal Planner — Version 1</title>
+<style>
+:root{
+  --bg:#f7f4ee;
+  --surface:#ffffff;
+  --surface-2:#f0ede6;
+  --text:#20302a;
+  --muted:#68756f;
+  --brand:#2f6b52;
+  --brand-dark:#245440;
+  --accent:#e2a857;
+  --danger:#a7473d;
+  --border:#dedbd3;
+  --shadow:0 8px 24px rgba(31,48,42,.09);
+  --radius:18px;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+button,select,input{font:inherit}
+button{cursor:pointer}
+.app-shell{max-width:1200px;margin:auto;min-height:100vh}
+header{
+  position:sticky;top:0;z-index:30;
+  background:rgba(247,244,238,.94);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid rgba(222,219,211,.8);
+}
+.header-inner{
+  max-width:1200px;margin:auto;padding:12px 18px;
+  display:flex;align-items:center;gap:14px;justify-content:space-between;
+}
+.brand-wrap{display:flex;align-items:center;gap:12px}
+.logo{
+  width:42px;height:42px;border-radius:14px;background:var(--brand);
+  display:grid;place-items:center;color:white;font-size:22px;
+  box-shadow:var(--shadow)
+}
+h1{font-size:1.08rem;margin:0}
+.tagline{font-size:.82rem;color:var(--muted);margin-top:2px}
+nav{display:flex;gap:7px}
+.nav-btn{
+  border:0;background:transparent;padding:9px 12px;border-radius:12px;color:var(--muted);font-weight:700
+}
+.nav-btn.active{background:var(--brand);color:white}
+main{padding:22px 18px 96px}
+.view{display:none}
+.view.active{display:block}
+.hero{
+  display:grid;grid-template-columns:1.5fr 1fr;gap:18px;margin-bottom:22px;
+  background:linear-gradient(135deg,#355f4c,#1f3c30);color:white;padding:24px;border-radius:24px;overflow:hidden;min-height:180px
+}
+.hero h2{font-size:clamp(1.7rem,4vw,3rem);margin:0 0 10px;line-height:1.02}
+.hero p{max-width:650px;color:#e6eee9;margin:0 0 18px}
+.hero-actions{display:flex;gap:10px;flex-wrap:wrap}
+.hero-visual{display:flex;justify-content:center;align-items:center;font-size:76px}
+.btn{
+  border:0;border-radius:12px;padding:11px 15px;font-weight:800;
+  background:var(--brand);color:white;box-shadow:none
+}
+.btn:hover{background:var(--brand-dark)}
+.btn.secondary{background:white;color:var(--brand)}
+.btn.soft{background:var(--surface-2);color:var(--text)}
+.btn.danger{background:#f6e5e2;color:var(--danger)}
+.btn.small{padding:8px 10px;font-size:.87rem}
+.section-title{display:flex;align-items:end;justify-content:space-between;gap:14px;margin:4px 0 14px}
+.section-title h2,.section-title h3{margin:0}
+.section-title p{margin:3px 0 0;color:var(--muted);font-size:.9rem}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.filter-btn{
+  border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:8px 12px;font-weight:700;color:var(--text)
+}
+.filter-btn.active{background:var(--brand);border-color:var(--brand);color:white}
+.meal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.meal-card{
+  background:var(--surface);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);
+  border:1px solid rgba(222,219,211,.65);display:flex;flex-direction:column
+}
+.meal-img{
+  height:190px;background-size:cover;background-position:center;position:relative;
+}
+.badge{
+  position:absolute;top:12px;left:12px;background:rgba(255,255,255,.93);padding:6px 9px;border-radius:999px;
+  font-size:.78rem;font-weight:800
+}
+.card-body{padding:14px;display:flex;flex-direction:column;gap:10px;flex:1}
+.card-body h3{margin:0;font-size:1.05rem}
+.meta{display:flex;gap:12px;color:var(--muted);font-size:.84rem}
+.card-actions{display:flex;gap:8px;margin-top:auto}
+.card-actions .btn{flex:1}
+.planner-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.day-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px;min-height:142px;display:flex;gap:12px;align-items:center
+}
+.day-label{font-weight:900;min-width:92px}
+.day-meal{display:flex;gap:12px;align-items:center;flex:1}
+.day-thumb{width:84px;height:70px;border-radius:12px;background-size:cover;background-position:center;flex:none}
+.day-copy{flex:1}
+.day-copy strong{display:block}
+.day-copy span{color:var(--muted);font-size:.82rem}
+.empty{color:var(--muted);font-size:.9rem;flex:1}
+.empty .btn{margin-top:8px}
+.progress-card{
+  background:var(--surface);padding:16px;border-radius:18px;border:1px solid var(--border);margin-bottom:16px
+}
+.progress-track{height:10px;background:var(--surface-2);border-radius:999px;overflow:hidden;margin-top:9px}
+.progress-bar{height:100%;background:var(--brand);width:0;transition:.2s}
+.shop-grid{display:grid;grid-template-columns:1.3fr .7fr;gap:18px}
+.shopping-list{background:var(--surface);border:1px solid var(--border);border-radius:18px;overflow:hidden}
+.shop-item{display:flex;gap:12px;align-items:center;padding:13px 14px;border-bottom:1px solid var(--border)}
+.shop-item:last-child{border-bottom:0}
+.shop-item input{width:21px;height:21px;accent-color:var(--brand)}
+.shop-item.checked .shop-name{text-decoration:line-through;color:var(--muted)}
+.shop-name{font-weight:800}
+.shop-qty{color:var(--muted);font-size:.9rem}
+.summary-box{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:16px;height:max-content}
+.summary-box h3{margin-top:0}
+.summary-line{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)}
+.summary-line:last-child{border:0}
+.modal{
+  position:fixed;inset:0;background:rgba(20,31,26,.62);z-index:50;display:none;align-items:center;justify-content:center;padding:18px
+}
+.modal.open{display:flex}
+.modal-panel{
+  width:min(820px,100%);max-height:92vh;overflow:auto;background:var(--surface);border-radius:24px;box-shadow:0 24px 80px rgba(0,0,0,.25)
+}
+.modal-img{height:320px;background-size:cover;background-position:center;border-radius:24px 24px 0 0;position:relative}
+.close-btn{
+  position:absolute;right:14px;top:14px;border:0;width:40px;height:40px;border-radius:999px;background:rgba(255,255,255,.92);font-size:20px;font-weight:900
+}
+.modal-content{padding:20px}
+.modal-content h2{margin:0 0 8px}
+.recipe-meta{display:flex;gap:9px;flex-wrap:wrap;margin:12px 0}
+.meta-pill{background:var(--surface-2);padding:7px 9px;border-radius:999px;font-size:.82rem;font-weight:700}
+.recipe-columns{display:grid;grid-template-columns:.85fr 1.15fr;gap:24px;margin-top:18px}
+.recipe-columns h3{margin-top:0}
+.ingredients{padding-left:20px}
+.ingredients li,.method li{margin-bottom:8px}
+.method{padding-left:22px}
+.assign-row{
+  background:var(--surface-2);border-radius:14px;padding:12px;display:flex;gap:9px;align-items:center;margin-top:16px;flex-wrap:wrap
+}
+.assign-row select{padding:10px;border-radius:10px;border:1px solid var(--border);background:white;min-width:150px}
+.toast{
+  position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#1f302a;color:white;
+  padding:11px 15px;border-radius:12px;z-index:70;opacity:0;pointer-events:none;transition:.2s
+}
+.toast.show{opacity:1}
+.mobile-nav{display:none}
+.notice{
+  background:#fff9e8;border:1px solid #efdca6;padding:12px 14px;border-radius:14px;color:#67562b;font-size:.9rem;margin-bottom:16px
+}
+.household-control{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--surface);
+  border:1px solid var(--border);border-radius:16px;padding:12px 14px;margin-bottom:16px;
+}
+.household-control strong{margin-right:2px}
+.size-options{display:flex;gap:7px;flex-wrap:wrap}
+.size-btn{
+  width:42px;height:42px;border-radius:12px;border:1px solid var(--border);
+  background:var(--surface-2);font-weight:900;color:var(--text)
+}
+.size-btn.active{background:var(--brand);color:white;border-color:var(--brand)}
+.household-note{color:var(--muted);font-size:.84rem}
+@media (max-width:860px){
+  .meal-grid{grid-template-columns:repeat(2,1fr)}
+  .planner-grid,.shop-grid,.recipe-columns{grid-template-columns:1fr}
+  .hero{grid-template-columns:1fr}
+  .hero-visual{display:none}
+}
+@media (max-width:620px){
+  header nav{display:none}
+  main{padding:15px 12px 96px}
+  .header-inner{padding:10px 12px}
+  .meal-grid{grid-template-columns:1fr}
+  .meal-img{height:220px}
+  .planner-grid{grid-template-columns:1fr}
+  .day-card{align-items:flex-start}
+  .day-label{min-width:72px}
+  .day-thumb{width:72px;height:64px}
+  .hero{padding:19px}
+  .modal{padding:0;align-items:flex-end}
+  .modal-panel{max-height:94vh;border-radius:24px 24px 0 0}
+  .modal-img{height:230px;border-radius:24px 24px 0 0}
+  .mobile-nav{
+    position:fixed;display:grid;grid-template-columns:repeat(4,1fr);bottom:0;left:0;right:0;background:white;
+    border-top:1px solid var(--border);z-index:40;padding:7px 8px calc(7px + env(safe-area-inset-bottom))
+  }
+  .mobile-nav button{border:0;background:white;padding:8px 4px;color:var(--muted);font-weight:800}
+  .mobile-nav button.active{color:var(--brand)}
+}
+
+.family-switcher{
+  display:flex;gap:10px;flex-wrap:wrap;margin:0 0 18px;
+}
+.household-chip{
+  border:1px solid var(--border);background:var(--surface);border-radius:14px;
+  padding:10px 12px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:8px;
+}
+.household-chip.active{background:var(--brand);color:white;border-color:var(--brand)}
+.family-panel{
+  background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:16px;margin-bottom:18px;
+}
+.family-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:12px;
+}
+.family-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px;
+}
+.family-card strong{display:block;margin-bottom:4px}
+.family-card span{color:var(--muted);font-size:.86rem}
+.family-meals{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:14px;
+}
+.family-meal-card{
+  border:1px solid var(--border);border-radius:16px;overflow:hidden;background:var(--surface);
+}
+.family-meal-img{height:130px;background-size:cover;background-position:center}
+.family-meal-body{padding:12px}
+.family-meal-body h4{margin:0 0 5px}
+.family-note{font-size:.83rem;color:var(--muted);margin:5px 0 10px}
+@media (max-width:860px){
+  .family-grid,.family-meals{grid-template-columns:1fr 1fr}
+}
+@media (max-width:620px){
+  .family-grid,.family-meals{grid-template-columns:1fr}
+}
+
+
+.auth-screen{
+  position:fixed;inset:0;z-index:100;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;padding:20px;
+}
+.auth-screen.hidden{display:none}
+.auth-card{
+  width:min(430px,100%);background:var(--surface);border:1px solid var(--border);
+  border-radius:24px;padding:24px;box-shadow:var(--shadow);
+}
+.auth-card h2{margin:0 0 8px;font-size:1.7rem}
+.auth-card p{color:var(--muted);margin:0 0 18px}
+.auth-field{margin-bottom:12px}
+.auth-field label{display:block;font-weight:800;margin-bottom:6px}
+.auth-field input{
+  width:100%;padding:12px;border:1px solid var(--border);border-radius:12px;background:white;
+}
+.auth-error{color:var(--danger);font-size:.9rem;margin-top:10px;min-height:1.2em}
+.user-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cloud-pill{
+  background:#e8f2ed;color:var(--brand);font-weight:800;font-size:.78rem;padding:6px 9px;border-radius:999px
+}
+.sync-status{font-size:.8rem;color:var(--muted)}
+
+</style>
+</head>
+<body>
+
+<div class="auth-screen" id="authScreen">
+  <div class="auth-card">
+    <div class="logo" style="margin-bottom:14px">🍽️</div>
+    <h2>Family Meal Planner</h2>
+    <p>Sign in to see your family's shared meal planner.</p>
+    <form onsubmit="signIn(event)">
+      <div class="auth-field">
+        <label for="loginEmail">Email</label>
+        <input id="loginEmail" type="email" autocomplete="email" required>
+      </div>
+      <div class="auth-field">
+        <label for="loginPassword">Password</label>
+        <input id="loginPassword" type="password" autocomplete="current-password" required>
+      </div>
+      <button class="btn" id="loginButton" type="submit" style="width:100%">Sign in</button>
+      <div class="auth-error" id="authError"></div>
+    </form>
+  </div>
+</div>
+
+<header>
+  <div class="header-inner">
+    <div class="brand-wrap">
+      <div class="logo">🍽️</div>
+      <div>
+        <h1>Family Meal Planner</h1>
+        <div class="tagline">Plan dinner without the daily decision</div>
+      </div>
+    </div>
+    <div class="user-bar" id="userBar" style="display:none">
+      <span class="cloud-pill">☁ Cloud sync</span>
+      <span id="signedInName" class="sync-status"></span>
+      <button class="btn soft small" onclick="signOut()">Sign out</button>
+    </div>
+    <nav>
+      <button class="nav-btn active" data-view="browse">Browse</button>
+      <button class="nav-btn" data-view="planner">My Week</button>
+      <button class="nav-btn" data-view="shopping">Shopping</button>
+      <button class="nav-btn" data-view="family">Family</button>
+    </nav>
+  </div>
+</header>
+
+<div class="app-shell">
+<main>
+<div class="family-panel">
+  <div class="section-title" style="margin-top:0">
+    <div><h3>Planning for</h3><p>Each household has its own week and shopping list.</p></div>
+  </div>
+  <div class="family-switcher" id="householdSwitcher"></div>
+</div>
+<section id="browse" class="view active">
+  <div class="hero">
+    <div>
+      <h2>What shall we eat this week?</h2>
+      <p>Browse by picture, choose meals you fancy, then drop them straight into your week. Your shopping list builds itself.</p>
+      <div class="hero-actions">
+        <button class="btn secondary" onclick="showView('planner')">Plan my week</button>
+        <button class="btn soft" onclick="surpriseMe()">Suggest a meal</button>
+      </div>
+    </div>
+    <div class="hero-visual">🥘 🥗 🐟</div>
+  </div>
+
+  <div class="household-control">
+    <strong>How many are eating?</strong>
+    <div class="size-options" id="householdOptions"></div>
+    <span class="household-note">Recipe and shopping quantities adjust automatically.</span>
+  </div>
+
+  <div class="section-title">
+    <div><h2>Meal inspiration</h2><p>Tap a meal to see the full recipe.</p></div>
+  </div>
+  <div class="filters" id="filters"></div>
+  <div class="meal-grid" id="mealGrid"></div>
+</section>
+
+<section id="planner" class="view">
+  <div class="section-title">
+    <div><h2><span id="plannerHouseholdName">Your</span> week</h2><p>One main meal per day, Monday to Sunday.</p></div>
+    <button class="btn soft small" onclick="clearWeek()">Clear week</button>
+  </div>
+  <div class="household-control">
+    <strong>Cooking for:</strong>
+    <div class="size-options household-options-copy"></div>
+    <span class="household-note">people</span>
+  </div>
+  <div class="progress-card">
+    <strong id="weekProgressText">0 of 7 meals planned</strong>
+    <div class="progress-track"><div class="progress-bar" id="weekProgressBar"></div></div>
+  </div>
+  <div class="planner-grid" id="plannerGrid"></div>
+</section>
+
+<section id="shopping" class="view">
+  <div class="section-title">
+    <div><h2><span id="shoppingHouseholdName"></span> Shopping List</h2><p>Automatically combined from this week's meals.</p></div>
+    <button class="btn soft small" onclick="resetTicks()">Untick all</button>
+  </div>
+  <div class="notice">Quantities are consolidated where the ingredient and unit match. This prototype deliberately avoids pretending that unlike units can always be combined safely.</div>
+  <div class="shop-grid">
+    <div class="shopping-list" id="shoppingList"></div>
+    <aside class="summary-box" id="shoppingSummary"></aside>
+  </div>
+</section>
+
+<section id="family" class="view">
+  <div class="section-title">
+    <div><h2>Family</h2><p>Shared meal ideas across all households.</p></div>
+  </div>
+
+  <div class="family-panel">
+    <h3 style="margin-top:0">Households</h3>
+    <div class="family-grid" id="familyHouseholds"></div>
+  </div>
+
+  <div class="section-title">
+    <div><h3>Shared Family Meals</h3><p>Meals saved here are available to everyone.</p></div>
+  </div>
+  <div class="family-meals" id="familyMeals"></div>
+</section>
+
+</main>
+</div>
+
+<div class="mobile-nav">
+  <button class="active" data-view="browse">🍲<br>Browse</button>
+  <button data-view="planner">📅<br>Week</button>
+  <button data-view="shopping">🛒<br>Shop</button>
+  <button data-view="family">👨‍👩‍👧‍👦<br>Family</button>
+</div>
+
+<div class="modal" id="recipeModal" aria-hidden="true">
+  <div class="modal-panel">
+    <div class="modal-img" id="modalImg"><button class="close-btn" onclick="closeModal()">×</button></div>
+    <div class="modal-content" id="modalContent"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+
+const recipes = [
+{
+ id:"chicken-curry", title:"Creamy Chicken Curry", category:"Chicken",
+ image:"https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?auto=format&fit=crop&w=1200&q=85",
+ prep:15,cook:30,servings:4,
+ ingredients:[
+  ["Chicken breast",600,"g"],["Onion",2,""],["Garlic",3,"cloves"],["Fresh ginger",20,"g"],
+  ["Curry powder",2,"tbsp"],["Chopped tomatoes",400,"g"],["Coconut milk",400,"ml"],
+  ["Basmati rice",300,"g"],["Vegetable oil",1,"tbsp"],["Fresh coriander",1,"handful"]
+ ],
+ method:[
+  "Dice the chicken and finely chop the onion, garlic and ginger.",
+  "Warm the oil in a large pan and soften the onion for 5 minutes.",
+  "Add {{Garlic}}, {{Fresh ginger}} and {{Curry powder}}, then cook for 1 minute.",
+  "Add the chicken and cook until lightly coloured.",
+  "Stir in {{Chopped tomatoes}} and {{Coconut milk}}. Simmer for about 20 minutes.",
+  "Cook {{Basmati rice}} according to the packet instructions and serve with the curry and {{Fresh coriander}}."
+ ]
+},
+{
+ id:"chicken-fajitas", title:"Chicken Fajitas", category:"Chicken",
+ image:"https://images.unsplash.com/photo-1611250188496-e966043a0629?auto=format&fit=crop&w=1200&q=85",
+ prep:15,cook:20,servings:4,
+ ingredients:[
+  ["Chicken breast",600,"g"],["Red pepper",2,""],["Onion",2,""],["Fajita seasoning",2,"tbsp"],
+  ["Flour tortillas",8,""],["Lime",1,""],["Cheddar cheese",120,"g"],["Soured cream",150,"ml"],["Vegetable oil",1,"tbsp"]
+ ],
+ method:[
+  "Slice the chicken, peppers and onion into thin strips.",
+  "Toss {{Chicken breast}} with {{Fajita seasoning}}.",
+  "Heat the oil in a large frying pan and cook the chicken for 7–8 minutes.",
+  "Add the onion and peppers and cook until tender but still colourful.",
+  "Warm the tortillas, then fill with chicken and vegetables.",
+  "Finish with {{Lime}}, grated {{Cheddar cheese}} and {{Soured cream}}."
+ ]
+},
+{
+ id:"lemon-chicken-traybake", title:"Lemon Chicken Traybake", category:"Chicken",
+ image:"https://images.unsplash.com/photo-1532550907401-a500c9a57435?auto=format&fit=crop&w=1200&q=85",
+ prep:15,cook:45,servings:4,
+ ingredients:[
+  ["Chicken thighs",8,""],["Baby potatoes",800,"g"],["Red onion",2,""],["Courgette",2,""],
+  ["Lemon",2,""],["Garlic",4,"cloves"],["Olive oil",2,"tbsp"],["Dried oregano",2,"tsp"]
+ ],
+ method:[
+  "Heat the oven to 200°C fan.",
+  "Halve the potatoes and cut the vegetables into chunky pieces.",
+  "Put everything except the lemon into a large roasting tray and toss with oil and oregano.",
+  "Nestle the chicken among the vegetables and squeeze over one lemon.",
+  "Roast for 40–45 minutes until the chicken is cooked through and the potatoes are tender.",
+  "Serve with wedges of the remaining lemon."
+ ]
+},
+{
+ id:"salmon-traybake", title:"Salmon & Vegetable Traybake", category:"Fish",
+ image:"https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&w=1200&q=85",
+ prep:10,cook:30,servings:4,
+ ingredients:[
+  ["Salmon fillet",4,""],["Baby potatoes",700,"g"],["Broccoli",1,"head"],["Cherry tomatoes",250,"g"],
+  ["Lemon",1,""],["Olive oil",2,"tbsp"],["Dijon mustard",1,"tbsp"]
+ ],
+ method:[
+  "Heat the oven to 200°C fan.",
+  "Halve the potatoes, toss with half the oil and roast for 15 minutes.",
+  "Add the broccoli and tomatoes to the tray.",
+  "Place {{Salmon fillet}} on top and brush with {{Dijon mustard}} and the remaining oil.",
+  "Roast for a further 12–15 minutes until the salmon flakes easily.",
+  "Serve with lemon wedges."
+ ]
+},
+{
+ id:"fish-pie", title:"Comforting Fish Pie", category:"Fish",
+ image:"https://images.unsplash.com/photo-1574484284002-952d92456975?auto=format&fit=crop&w=1200&q=85",
+ prep:25,cook:35,servings:4,
+ ingredients:[
+  ["Mixed fish pieces",600,"g"],["Potatoes",900,"g"],["Milk",500,"ml"],["Butter",50,"g"],
+  ["Plain flour",40,"g"],["Frozen peas",150,"g"],["Cheddar cheese",100,"g"],["Parsley",1,"handful"]
+ ],
+ method:[
+  "Heat the oven to 190°C fan and boil the potatoes until tender.",
+  "Melt {{Butter}}, stir in {{Plain flour}}, then gradually whisk in {{Milk}} to make a smooth sauce.",
+  "Add {{Mixed fish pieces}} and {{Frozen peas}} to the sauce and cook gently for 5 minutes.",
+  "Mash the potatoes and stir in half the cheese.",
+  "Transfer the fish mixture to a baking dish, top with mash and remaining cheese.",
+  "Bake for 25 minutes until golden and bubbling."
+ ]
+},
+{
+ id:"cod-tacos", title:"Crispy Cod Tacos", category:"Fish",
+ image:"https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?auto=format&fit=crop&w=1200&q=85",
+ prep:20,cook:15,servings:4,
+ ingredients:[
+  ["Cod fillet",600,"g"],["Small tortillas",8,""],["Red cabbage",0.5,"head"],["Lime",2,""],
+  ["Greek yoghurt",150,"g"],["Paprika",2,"tsp"],["Avocado",2,""],["Fresh coriander",1,"handful"]
+ ],
+ method:[
+  "Cut {{Cod fillet}} into strips and coat with {{Paprika}} and a pinch of salt.",
+  "Cook in a hot non-stick frying pan for 3–4 minutes on each side.",
+  "Finely shred the cabbage and toss with juice from one lime.",
+  "Mix {{Greek yoghurt}} with a little juice from {{Lime}}.",
+  "Warm the tortillas and fill with cabbage, cod and sliced avocado.",
+  "Finish with yoghurt, coriander and lime."
+ ]
+},
+{
+ id:"veg-lasagne", title:"Vegetable Lasagne", category:"Vegetarian",
+ image:"https://images.unsplash.com/photo-1574894709920-11b28e7367e3?auto=format&fit=crop&w=1200&q=85",
+ prep:25,cook:45,servings:4,
+ ingredients:[
+  ["Lasagne sheets",250,"g"],["Courgette",2,""],["Red pepper",2,""],["Onion",2,""],
+  ["Chopped tomatoes",800,"g"],["Garlic",3,"cloves"],["Mozzarella",250,"g"],["Cheddar cheese",100,"g"],
+  ["Olive oil",2,"tbsp"]
+ ],
+ method:[
+  "Heat the oven to 190°C fan.",
+  "Dice the vegetables and soften them in olive oil for 8–10 minutes.",
+  "Add {{Garlic}} and {{Chopped tomatoes}} and simmer for 10 minutes.",
+  "Layer tomato vegetables, lasagne sheets and torn mozzarella in a baking dish.",
+  "Finish with {{Cheddar cheese}} and bake for 35–40 minutes until bubbling and tender."
+ ]
+},
+{
+ id:"veg-stirfry", title:"Colourful Vegetable Stir Fry", category:"Vegetarian",
+ image:"https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&w=1200&q=85",
+ prep:15,cook:15,servings:4,
+ ingredients:[
+  ["Egg noodles",300,"g"],["Broccoli",1,"head"],["Red pepper",2,""],["Carrot",2,""],
+  ["Spring onions",1,"bunch"],["Garlic",2,"cloves"],["Soy sauce",4,"tbsp"],["Sesame oil",1,"tbsp"],
+  ["Fresh ginger",15,"g"]
+ ],
+ method:[
+  "Cook the noodles according to the packet instructions and drain.",
+  "Slice all vegetables into bite-sized pieces.",
+  "Heat sesame oil in a wok and stir-fry the harder vegetables for 4–5 minutes.",
+  "Add garlic, ginger and remaining vegetables and cook for 2 minutes.",
+  "Add {{Egg noodles}} and {{Soy sauce}} and toss until piping hot."
+ ]
+},
+{
+ id:"halloumi-couscous", title:"Halloumi & Roasted Vegetable Couscous", category:"Vegetarian",
+ image:"https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=1200&q=85",
+ prep:15,cook:25,servings:4,
+ ingredients:[
+  ["Halloumi",250,"g"],["Couscous",300,"g"],["Courgette",2,""],["Red pepper",2,""],
+  ["Cherry tomatoes",250,"g"],["Red onion",1,""],["Lemon",1,""],["Olive oil",2,"tbsp"],["Fresh mint",1,"handful"]
+ ],
+ method:[
+  "Heat the oven to 210°C fan.",
+  "Chop the vegetables, toss with oil and roast for 20–25 minutes.",
+  "Prepare {{Couscous}} according to the packet instructions.",
+  "Slice the halloumi and fry in a dry pan until golden on both sides.",
+  "Mix couscous with the roasted vegetables, lemon juice and mint.",
+  "Top with halloumi and serve."
+ ]
+},
+{
+ id:"lamb-koftas", title:"Lamb Koftas with Couscous", category:"Lamb",
+ image:"https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?auto=format&fit=crop&w=1200&q=85",
+ prep:20,cook:15,servings:4,
+ ingredients:[
+  ["Lamb mince",500,"g"],["Couscous",300,"g"],["Red onion",1,""],["Garlic",2,"cloves"],
+  ["Ground cumin",2,"tsp"],["Fresh parsley",1,"handful"],["Greek yoghurt",150,"g"],["Lemon",1,""],["Olive oil",1,"tbsp"]
+ ],
+ method:[
+  "Mix {{Lamb mince}} with {{Red onion}}, {{Garlic}}, {{Ground cumin}} and chopped {{Fresh parsley}}.",
+  "Shape into small koftas and brush lightly with {{Olive oil}}.",
+  "Grill or fry for 10–12 minutes, turning until cooked through.",
+  "Prepare {{Couscous}} according to the packet instructions.",
+  "Serve with {{Greek yoghurt}}, {{Lemon}} and the remaining parsley."
+ ]
+},
+{
+ id:"beef-chilli", title:"Easy Beef Chilli", category:"Beef",
+ image:"https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=1200&q=85",
+ prep:15,cook:35,servings:4,
+ ingredients:[
+  ["Beef mince",500,"g"],["Onion",2,""],["Garlic",2,"cloves"],["Red pepper",1,""],
+  ["Chopped tomatoes",800,"g"],["Kidney beans",400,"g"],["Chilli powder",2,"tsp"],["Ground cumin",1,"tsp"],
+  ["Basmati rice",300,"g"],["Vegetable oil",1,"tbsp"]
+ ],
+ method:[
+  "Finely chop {{Onion}}, {{Garlic}} and {{Red pepper}}.",
+  "Heat {{Vegetable oil}} and brown {{Beef mince}}.",
+  "Add the onion, garlic and pepper and cook for 5 minutes.",
+  "Stir in {{Chilli powder}}, {{Ground cumin}}, {{Chopped tomatoes}} and drained {{Kidney beans}}.",
+  "Simmer for 25 minutes while you cook {{Basmati rice}}.",
+  "Serve the chilli over the rice."
+ ]
+},
+{
+ id:"duck-stirfry", title:"Duck & Hoisin Stir Fry", category:"Duck",
+ image:"https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=1200&q=85",
+ prep:15,cook:20,servings:4,
+ ingredients:[
+  ["Duck breast",4,""],["Egg noodles",300,"g"],["Pak choi",2,""],["Red pepper",2,""],
+  ["Spring onions",1,"bunch"],["Hoisin sauce",4,"tbsp"],["Soy sauce",2,"tbsp"],["Fresh ginger",15,"g"],
+  ["Sesame oil",1,"tbsp"]
+ ],
+ method:[
+  "Score {{Duck breast}} and cook skin-side down in a dry frying pan until golden.",
+  "Turn and cook until done to your liking, then rest before slicing.",
+  "Cook {{Egg noodles}} according to the packet instructions.",
+  "Stir-fry {{Pak choi}}, {{Red pepper}}, {{Spring onions}} and {{Fresh ginger}} in {{Sesame oil}}.",
+  "Add the noodles, {{Hoisin sauce}} and {{Soy sauce}} and toss together.",
+  "Top with sliced duck and serve."
+ ]
+}
+];
+
+const SUPABASE_URL = "https://oydczlyqrgghhmruqhoz.supabase.co";
+const SUPABASE_KEY = "sb_publishable_mVJBwxLo0cY4G9U64qmLMg_mYQe28oH";
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let sessionUser = null;
+let familyMember = null;
+let familyId = null;
+let households = [];
+let state = {
+  activeHousehold:null,
+  plans:{},
+  checked:{},
+  householdSizes:{},
+  sharedMeals:[]
+};
+
+let activeFilter = "All";
+let currentRecipeId = null;
+
+function save(){}
+
+
+
+function currentHousehold(){
+ return households.find(h=>h.id===state.activeHousehold) || households[0] || {id:null,name:"Household",icon:"🏠",default_servings:2};
+}
+function currentPlan(){
+ if(!state.plans[state.activeHousehold]) state.plans[state.activeHousehold]={};
+ return state.plans[state.activeHousehold];
+}
+function currentChecked(){
+ if(!state.checked[state.activeHousehold]) state.checked[state.activeHousehold]={};
+ return state.checked[state.activeHousehold];
+}
+function currentSize(){
+ return state.householdSizes[state.activeHousehold] || currentHousehold().default_servings || 2;
+}
+function mondayOfCurrentWeek(){
+ const d=new Date();
+ const day=d.getDay();
+ const diff=d.getDate()-day+(day===0?-6:1);
+ const m=new Date(d.setDate(diff));
+ return `${m.getFullYear()}-${String(m.getMonth()+1).padStart(2,"0")}-${String(m.getDate()).padStart(2,"0")}`;
+}
+function renderHouseholdSwitcher(){
+ const el=document.getElementById("householdSwitcher");
+ if(!el) return;
+ el.innerHTML=households.map(h=>`
+   <button class="household-chip ${h.id===state.activeHousehold?"active":""}" onclick="switchHousehold('${h.id}')">
+     <span>${h.icon||"🏠"}</span><span>${h.name}</span>
+   </button>`).join("");
+}
+async function switchHousehold(id){
+ state.activeHousehold=id;
+ await loadHouseholdData(id);
+ renderHouseholdSwitcher();
+ renderHouseholdControls();
+ renderPlanner();
+ renderShopping();
+ renderFamily();
+ toast(`Now planning for ${currentHousehold().name}`);
+}
+async function loadHouseholdData(householdId){
+ const week=mondayOfCurrentWeek();
+ state.plans[householdId]={};
+ state.checked[householdId]={};
+
+ const {data:planRows,error:planError}=await db
+   .from("meal_plans")
+   .select("day_of_week,servings,recipe:recipes(external_id)")
+   .eq("household_id",householdId)
+   .eq("week_start",week);
+ if(planError) console.error(planError);
+ (planRows||[]).forEach(row=>{
+   const ext=row.recipe?.external_id;
+   if(ext) state.plans[householdId][days[row.day_of_week-1]]=ext;
+ });
+
+ const {data:shopRows,error:shopError}=await db
+   .from("shopping_items")
+   .select("ingredient_name,unit,checked")
+   .eq("household_id",householdId)
+   .eq("week_start",week);
+ if(shopError) console.error(shopError);
+ (shopRows||[]).forEach(row=>{
+   const key=(row.ingredient_name+"|"+(row.unit||"")).toLowerCase();
+   state.checked[householdId][key]=row.checked;
+ });
+}
+async function loadSharedMeals(){
+ state.sharedMeals=[];
+ const {data,error}=await db
+   .from("family_favourites")
+   .select("recipe:recipes(external_id)")
+   .eq("family_id",familyId);
+ if(error){ console.error(error); return; }
+ state.sharedMeals=(data||[]).map(x=>x.recipe?.external_id).filter(Boolean);
+}
+function renderFamily(){
+ const hh=document.getElementById("familyHouseholds");
+ if(hh){
+   hh.innerHTML=households.map(h=>{
+     const plan=state.plans[h.id]||{};
+     const count=days.filter(d=>plan[d]).length;
+     const size=state.householdSizes[h.id]||h.default_servings;
+     return `<div class="family-card">
+       <strong>${h.icon||"🏠"} ${h.name}</strong>
+       <span>${count}/7 meals planned · default ${size} ${size===1?"person":"people"}</span>
+       <div style="margin-top:10px"><button class="btn soft small" onclick="switchHousehold('${h.id}');showView('planner')">Open week</button></div>
+     </div>`;
+   }).join("");
+ }
+ const fm=document.getElementById("familyMeals");
+ if(fm){
+   if(!state.sharedMeals.length){
+     fm.innerHTML=`<div class="family-panel"><strong>No shared meals yet.</strong><p style="color:var(--muted);margin-bottom:0">Open any recipe and choose “Save to Family Meals”.</p></div>`;
+   }else{
+     fm.innerHTML=state.sharedMeals.map(id=>{
+       const r=recipes.find(x=>x.id===id);
+       if(!r) return "";
+       return `<div class="family-meal-card">
+         <div class="family-meal-img" style="background-image:url('${r.image}')"></div>
+         <div class="family-meal-body">
+           <h4>${r.title}</h4>
+           <div class="family-note">${r.category} · shared with the family</div>
+           <div style="display:flex;gap:6px;flex-wrap:wrap">
+             <button class="btn soft small" onclick="openRecipe('${r.id}')">Recipe</button>
+             <button class="btn small" onclick="quickPlan('${r.id}')">Add to my week</button>
+           </div>
+         </div>
+       </div>`;
+     }).join("");
+   }
+ }
+}
+async function getRecipeDbId(externalId){
+ const {data,error}=await db
+   .from("recipes")
+   .select("id")
+   .eq("family_id",familyId)
+   .eq("external_id",externalId)
+   .limit(1)
+   .maybeSingle();
+ if(error) throw error;
+ return data?.id || null;
+}
+async function ensureRecipesInCloud(){
+ const {data:existing,error}=await db
+   .from("recipes")
+   .select("external_id")
+   .eq("family_id",familyId);
+ if(error) throw error;
+ const existingIds=new Set((existing||[]).map(x=>x.external_id));
+ const missing=recipes.filter(r=>!existingIds.has(r.id));
+ if(!missing.length) return;
+ const rows=missing.map(r=>({
+   family_id:familyId,
+   external_id:r.id,
+   title:r.title,
+   category:r.category,
+   image_url:r.image,
+   prep_minutes:r.prep,
+   cook_minutes:r.cook,
+   base_servings:r.servings,
+   ingredients:r.ingredients,
+   method:r.method,
+   source_name:"Family Meal Planner sample",
+   is_family_shared:false,
+   created_by:sessionUser.id
+ }));
+ const {error:insertError}=await db.from("recipes").insert(rows);
+ if(insertError) throw insertError;
+}
+async function rebuildShoppingList(){
+ const hid=state.activeHousehold;
+ if(!hid) return;
+ const week=mondayOfCurrentWeek();
+ const oldChecked={...currentChecked()};
+ const items=consolidatedIngredients();
+
+ const {error:delError}=await db.from("shopping_items").delete()
+   .eq("household_id",hid).eq("week_start",week);
+ if(delError){ console.error(delError); return; }
+
+ if(items.length){
+   const rows=items.map(i=>{
+     const key=(i.name+"|"+i.unit).toLowerCase();
+     return {
+       household_id:hid,
+       week_start:week,
+       ingredient_name:i.name,
+       quantity:i.qty,
+       unit:i.unit || "",
+       checked:!!oldChecked[key]
+     };
+   });
+   const {error:insError}=await db.from("shopping_items").insert(rows);
+   if(insError){ console.error(insError); return; }
+ }
+ await loadHouseholdData(hid);
+}
+async function toggleSharedMeal(id){
+ try{
+   const recipeId=await getRecipeDbId(id);
+   if(!recipeId) throw new Error("Recipe not found in cloud.");
+   const idx=state.sharedMeals.indexOf(id);
+   if(idx>=0){
+     const {error}=await db.from("family_favourites").delete()
+       .eq("family_id",familyId).eq("recipe_id",recipeId);
+     if(error) throw error;
+     toast("Removed from Family Meals");
+   }else{
+     const {error}=await db.from("family_favourites").insert({
+       family_id:familyId,recipe_id:recipeId,added_by:sessionUser.id
+     });
+     if(error) throw error;
+     toast("Saved to Family Meals");
+   }
+   await loadSharedMeals();
+   renderFamily();
+   if(currentRecipeId===id && document.getElementById("recipeModal").classList.contains("open")) openRecipe(id);
+ }catch(e){
+   console.error(e); toast("Could not update Family Meals");
+ }
+}
+async function bootstrapCloud(){
+ const {data:{session}}=await db.auth.getSession();
+ if(!session){
+   document.getElementById("authScreen").classList.remove("hidden");
+   return;
+ }
+ sessionUser=session.user;
+ try{
+   const {data:member,error:memberError}=await db
+     .from("family_members")
+     .select("id,display_name,role,family_id,household_id")
+     .eq("user_id",sessionUser.id)
+     .single();
+   if(memberError) throw memberError;
+   familyMember=member;
+   familyId=member.family_id;
+
+   const {data:hh,error:hhError}=await db
+     .from("households")
+     .select("id,name,icon,default_servings")
+     .eq("family_id",familyId)
+     .order("name");
+   if(hhError) throw hhError;
+   households=hh||[];
+   households.forEach(h=>state.householdSizes[h.id]=h.default_servings);
+
+   state.activeHousehold=member.household_id || households[0]?.id;
+   await ensureRecipesInCloud();
+   await Promise.all(households.map(h=>loadHouseholdData(h.id)));
+   await loadSharedMeals();
+
+   document.getElementById("authScreen").classList.add("hidden");
+   document.getElementById("userBar").style.display="flex";
+   document.getElementById("signedInName").textContent=member.display_name || sessionUser.email;
+
+   renderHouseholdSwitcher();
+   renderHouseholdControls();
+   renderFilters();
+   renderMeals();
+   renderPlanner();
+   renderShopping();
+   renderFamily();
+ }catch(e){
+   console.error(e);
+   document.getElementById("authError").textContent="Signed in, but the family profile could not be loaded.";
+   document.getElementById("authScreen").classList.remove("hidden");
+ }
+}
+async function signIn(event){
+ event.preventDefault();
+ const btn=document.getElementById("loginButton");
+ const errorEl=document.getElementById("authError");
+ btn.disabled=true; btn.textContent="Signing in…"; errorEl.textContent="";
+ const email=document.getElementById("loginEmail").value.trim();
+ const password=document.getElementById("loginPassword").value;
+ const {error}=await db.auth.signInWithPassword({email,password});
+ btn.disabled=false; btn.textContent="Sign in";
+ if(error){ errorEl.textContent=error.message; return; }
+ await bootstrapCloud();
+}
+async function signOut(){
+ await db.auth.signOut();
+ location.reload();
+}
+
+function init(){
+ renderFilters();
+ renderMeals();
+ document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>showView(b.dataset.view)));
+ document.getElementById("recipeModal").addEventListener("click",e=>{ if(e.target.id==="recipeModal") closeModal(); });
+ bootstrapCloud();
+}
+function showView(name){
+ document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active",v.id===name));
+ document.querySelectorAll("[data-view]").forEach(b=>b.classList.toggle("active",b.dataset.view===name));
+ if(name==="planner") renderPlanner();
+ if(name==="shopping") renderShopping();
+ if(name==="family") renderFamily();
+ window.scrollTo({top:0,behavior:"smooth"});
+}
+function renderHouseholdControls(){
+ const sizes=[1,2,4,6];
+ const markup=sizes.map(s=>`<button class="size-btn ${currentSize()===s?"active":""}" onclick="setHouseholdSize(${s})">${s}</button>`).join("");
+ const main=document.getElementById("householdOptions");
+ if(main) main.innerHTML=markup;
+ document.querySelectorAll(".household-options-copy").forEach(el=>el.innerHTML=markup);
+}
+async function setHouseholdSize(size){
+ state.householdSizes[state.activeHousehold]=size;
+ state.checked[state.activeHousehold]={};
+ const {error}=await db.from("households").update({default_servings:size}).eq("id",state.activeHousehold);
+ if(error){console.error(error);toast("Could not save household size");return;}
+ await rebuildShoppingList();
+ renderHouseholdControls();
+ renderMeals();
+ renderPlanner();
+ renderShopping();
+ if(currentRecipeId && document.getElementById("recipeModal").classList.contains("open")) openRecipe(currentRecipeId);
+ toast(`Quantities updated for ${size} ${size===1?"person":"people"}`);
+}
+function scaledQty(q, baseServings=4){
+ return Number(q) * currentSize() / baseServings;
+}
+function renderFilters(){
+ const filters=["All","Chicken","Fish","Vegetarian","Lamb","Beef","Duck"];
+ document.getElementById("filters").innerHTML=filters.map(f=>`<button class="filter-btn ${f===activeFilter?"active":""}" onclick="setFilter('${f}')">${f}</button>`).join("");
+}
+function setFilter(f){ activeFilter=f; renderFilters(); renderMeals(); }
+function renderMeals(){
+ const meals=recipes.filter(r=>activeFilter==="All"||r.category===activeFilter);
+ document.getElementById("mealGrid").innerHTML=meals.map(r=>`
+ <article class="meal-card">
+  <div class="meal-img" style="background-image:url('${r.image}')"><span class="badge">${r.category}</span></div>
+  <div class="card-body">
+   <h3>${r.title}</h3>
+   <div class="meta"><span>⏱ ${r.prep+r.cook} mins</span><span>👥 ${currentSize()}</span></div>
+   <div class="card-actions">
+    <button class="btn soft" onclick="openRecipe('${r.id}')">View recipe</button>
+    <button class="btn" onclick="quickPlan('${r.id}')">Add to week</button>
+   </div>
+  </div>
+ </article>`).join("");
+}
+function ingredientPhrase(r, ingredientName){
+ const item=r.ingredients.find(i=>i[0]===ingredientName);
+ if(!item) return ingredientName;
+ const [name,qty,unit]=item;
+ const scaled=scaledQty(qty,r.servings);
+ return `${formatQty(scaled)}${unit?" "+unit:""} ${name.toLowerCase()}`;
+}
+function renderMethodStep(r, step){
+ return step.replace(/\{\{([^}]+)\}\}/g, (_,name)=>ingredientPhrase(r,name));
+}
+function openRecipe(id){
+ currentRecipeId=id;
+ const r=recipes.find(x=>x.id===id);
+ document.getElementById("modalImg").style.backgroundImage=`url('${r.image}')`;
+ document.getElementById("modalContent").innerHTML=`
+  <h2>${r.title}</h2>
+  <div class="recipe-meta">
+   <span class="meta-pill">${r.category}</span><span class="meta-pill">Prep ${r.prep} mins</span>
+   <span class="meta-pill">Cook ${r.cook} mins</span><span class="meta-pill">Serves ${currentSize()}</span>
+  </div>
+  <div class="assign-row">
+   <strong>Add to:</strong>
+   <select id="daySelect">${days.map(d=>`<option>${d}</option>`).join("")}</select>
+   <button class="btn" onclick="assignSelectedDay()">Add meal</button>
+  </div>
+  <div class="recipe-columns">
+   <div><h3>Ingredients</h3><ul class="ingredients">${r.ingredients.map(i=>`<li><strong>${formatQty(scaledQty(i[1],r.servings))}${i[2]?" "+i[2]:""}</strong> ${i[0]}</li>`).join("")}</ul></div>
+   <div><h3>Method</h3><ol class="method">${r.method.map(s=>`<li>${renderMethodStep(r,s)}</li>`).join("")}</ol></div>
+  </div>`;
+ document.getElementById("recipeModal").classList.add("open");
+}
+function closeModal(){ document.getElementById("recipeModal").classList.remove("open"); }
+function assignSelectedDay(){
+ const day=document.getElementById("daySelect").value;
+ assignMeal(day,currentRecipeId); closeModal();
+}
+function quickPlan(id){
+ const firstEmpty=days.find(d=>!currentPlan()[d])||"Monday";
+ const r=recipes.find(x=>x.id===id);
+ document.getElementById("modalImg").style.backgroundImage=`url('${r.image}')`;
+ currentRecipeId=id;
+ document.getElementById("modalContent").innerHTML=`
+  <h2>Add ${r.title}</h2><p>Choose the day you want this meal.</p>
+  <div class="assign-row">
+   <select id="daySelect">${days.map(d=>`<option ${d===firstEmpty?"selected":""}>${d}</option>`).join("")}</select>
+   <button class="btn" onclick="assignSelectedDay()">Add meal</button>
+  </div>`;
+ document.getElementById("recipeModal").classList.add("open");
+}
+async function assignMeal(day,id){
+ try{
+   const recipeId=await getRecipeDbId(id);
+   if(!recipeId) throw new Error("Recipe not found");
+   const dayNum=days.indexOf(day)+1;
+   const week=mondayOfCurrentWeek();
+
+   const {data:existing,error:findError}=await db.from("meal_plans")
+     .select("id")
+     .eq("household_id",state.activeHousehold)
+     .eq("week_start",week)
+     .eq("day_of_week",dayNum)
+     .maybeSingle();
+   if(findError) throw findError;
+
+   let error;
+   if(existing){
+     ({error}=await db.from("meal_plans").update({
+       recipe_id:recipeId,servings:currentSize()
+     }).eq("id",existing.id));
+   }else{
+     ({error}=await db.from("meal_plans").insert({
+       household_id:state.activeHousehold,
+       week_start:week,
+       day_of_week:dayNum,
+       recipe_id:recipeId,
+       servings:currentSize()
+     }));
+   }
+   if(error) throw error;
+
+   currentPlan()[day]=id;
+   state.checked[state.activeHousehold]={};
+   await rebuildShoppingList();
+   renderPlanner(); renderShopping();
+   toast(`${recipes.find(r=>r.id===id).title} added to ${day}`);
+ }catch(e){ console.error(e); toast("Could not save meal"); }
+}
+async function removeMeal(day){
+ try{
+   const week=mondayOfCurrentWeek();
+   const dayNum=days.indexOf(day)+1;
+   const {error}=await db.from("meal_plans").delete()
+     .eq("household_id",state.activeHousehold)
+     .eq("week_start",week)
+     .eq("day_of_week",dayNum);
+   if(error) throw error;
+   delete currentPlan()[day];
+   state.checked[state.activeHousehold]={};
+   await rebuildShoppingList();
+   renderPlanner(); renderShopping();
+ }catch(e){console.error(e);toast("Could not remove meal");}
+}
+function chooseForDay(day){
+ const options=recipes.map(r=>`<option value="${r.id}">${r.title} — ${r.category}</option>`).join("");
+ document.getElementById("modalImg").style.backgroundImage="linear-gradient(135deg,#355f4c,#1f3c30)";
+ document.getElementById("modalContent").innerHTML=`
+  <h2>Choose a meal for ${day}</h2>
+  <p>Pick from the prototype recipe collection.</p>
+  <div class="assign-row">
+   <select id="mealSelect" style="min-width:min(420px,100%)">${options}</select>
+   <button class="btn" onclick="assignMealFromPicker('${day}')">Add meal</button>
+  </div>`;
+ document.getElementById("recipeModal").classList.add("open");
+}
+function assignMealFromPicker(day){
+ assignMeal(day,document.getElementById("mealSelect").value); closeModal();
+}
+function renderPlanner(){
+ const n=document.getElementById("plannerHouseholdName"); if(n) n.textContent=currentHousehold().name+"’s";
+ const count=days.filter(d=>currentPlan()[d]).length;
+ document.getElementById("weekProgressText").textContent=`${count} of 7 meals planned`;
+ document.getElementById("weekProgressBar").style.width=`${(count/7)*100}%`;
+ document.getElementById("plannerGrid").innerHTML=days.map(day=>{
+  const id=currentPlan()[day], r=recipes.find(x=>x.id===id);
+  return `<div class="day-card">
+    <div class="day-label">${day}</div>
+    ${r?`<div class="day-meal">
+      <div class="day-thumb" style="background-image:url('${r.image}')"></div>
+      <div class="day-copy"><strong>${r.title}</strong><span>${r.category} · ${r.prep+r.cook} mins · serves ${currentSize()}</span>
+        <div style="margin-top:7px;display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn soft small" onclick="openRecipe('${r.id}')">Recipe</button>
+          <button class="btn soft small" onclick="chooseForDay('${day}')">Change</button>
+          <button class="btn danger small" onclick="removeMeal('${day}')">Remove</button>
+        </div>
+      </div>
+    </div>`:`<div class="empty">Nothing planned yet.<br><button class="btn small" onclick="chooseForDay('${day}')">Choose meal</button></div>`}
+  </div>`;
+ }).join("");
+}
+function consolidatedIngredients(){
+ const map={};
+ days.forEach(day=>{
+  const r=recipes.find(x=>x.id===currentPlan()[day]);
+  if(!r)return;
+  r.ingredients.forEach(([name,qty,unit])=>{
+   const key=(name+"|"+unit).toLowerCase();
+   if(!map[key]) map[key]={name,qty:0,unit,meals:0};
+   map[key].qty+=scaledQty(qty,r.servings); map[key].meals++;
+  });
+ });
+ return Object.values(map).sort((a,b)=>a.name.localeCompare(b.name));
+}
+function renderShopping(){
+ const sn=document.getElementById("shoppingHouseholdName"); if(sn) sn.textContent=currentHousehold().name;
+ const items=consolidatedIngredients();
+ const list=document.getElementById("shoppingList");
+ if(!items.length){
+  list.innerHTML=`<div style="padding:24px;text-align:center;color:var(--muted)"><div style="font-size:42px">🛒</div><h3>No shopping yet</h3><p>Add meals to your week and the ingredients will appear here.</p><button class="btn" onclick="showView('browse')">Browse meals</button></div>`;
+ } else {
+  list.innerHTML=items.map(i=>{
+   const key=(i.name+"|"+i.unit).toLowerCase();
+   const checked=!!currentChecked()[key];
+   return `<label class="shop-item ${checked?"checked":""}">
+    <input type="checkbox" ${checked?"checked":""} onchange="toggleCheck('${encodeURIComponent(key)}',this.checked)">
+    <div><div class="shop-name">${i.name}</div><div class="shop-qty">${formatQty(i.qty)}${i.unit?" "+i.unit:""}${i.meals>1?` · used in ${i.meals} meals`:""}</div></div>
+   </label>`;
+  }).join("");
+ }
+ const planned=days.filter(d=>currentPlan()[d]).length;
+ const checkedCount=items.filter(i=>currentChecked()[(i.name+"|"+i.unit).toLowerCase()]).length;
+ document.getElementById("shoppingSummary").innerHTML=`
+  <h3>This week's basket</h3>
+  <div class="summary-line"><span>Cooking for</span><strong>${currentSize()} ${currentSize()===1?"person":"people"}</strong></div>
+  <div class="summary-line"><span>Meals planned</span><strong>${planned}/7</strong></div>
+  <div class="summary-line"><span>Shopping items</span><strong>${items.length}</strong></div>
+  <div class="summary-line"><span>Ticked off</span><strong>${checkedCount}/${items.length}</strong></div>
+  <div style="margin-top:14px"><button class="btn" style="width:100%" onclick="showView('planner')">Review week</button></div>`;
+}
+async function toggleCheck(encoded,checked){
+ const key=decodeURIComponent(encoded);
+ currentChecked()[key]=checked;
+ const [name,unit=""]=key.split("|");
+ const {error}=await db.from("shopping_items").update({checked})
+   .eq("household_id",state.activeHousehold)
+   .eq("week_start",mondayOfCurrentWeek())
+   .ilike("ingredient_name",name)
+   .eq("unit",unit);
+ if(error) console.error(error);
+ renderShopping();
+}
+async function resetTicks(){
+ state.checked[state.activeHousehold]={};
+ const {error}=await db.from("shopping_items").update({checked:false})
+   .eq("household_id",state.activeHousehold)
+   .eq("week_start",mondayOfCurrentWeek());
+ if(error) console.error(error);
+ renderShopping();
+}; save(); renderShopping(); }
+async function clearWeek(){
+ if(!confirm("Clear all meals from this week?")) return;
+ const {error}=await db.from("meal_plans").delete()
+   .eq("household_id",state.activeHousehold)
+   .eq("week_start",mondayOfCurrentWeek());
+ if(error){console.error(error);toast("Could not clear week");return;}
+ state.plans[state.activeHousehold]={};
+ state.checked[state.activeHousehold]={};
+ await rebuildShoppingList();
+ renderPlanner(); renderShopping(); renderFamily();
+}
+function surpriseMe(){
+ const r=recipes[Math.floor(Math.random()*recipes.length)];
+ openRecipe(r.id);
+}
+function formatQty(q){
+ const rounded=Math.round(q*100)/100;
+ if(Number.isInteger(rounded)) return rounded;
+ const whole=Math.floor(rounded), frac=Math.round((rounded-whole)*100)/100;
+ const fractions={0.25:"¼",0.5:"½",0.75:"¾"};
+ if(fractions[frac]) return `${whole?whole+" ":""}${fractions[frac]}`;
+ return rounded;
+}
+function toast(msg){
+ const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");
+ setTimeout(()=>t.classList.remove("show"),1800);
+}
+init();
+</script>
+</body>
+</html>
