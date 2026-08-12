@@ -1,29 +1,12 @@
-# Family Meal Planner — Version 3 (Supabase Cloud Sync)
+# Family Meal Planner — Version 3.1
 
-This version connects the prototype to the Supabase project:
+Version 3.1 adds proper Supabase password-recovery handling.
 
-`https://oydczlyqrgghhmruqhoz.supabase.co`
+When a user clicks a Supabase password-reset email:
+1. The link returns to the GitHub Pages app.
+2. The app recognises the Supabase PASSWORD_RECOVERY session.
+3. A "Choose a new password" screen appears.
+4. The new password is saved with Supabase Auth.
+5. The user is taken into the Family Meal Planner.
 
-## What is now cloud-backed
-- email/password sign-in
-- family membership
-- households
-- household default serving sizes
-- Monday–Sunday meal plans for the current week
-- shared Family Meals
-- shopping-list items and ticked state
-
-## What is still local/sample data
-- the sample recipe catalogue itself starts inside the app
-- after first successful sign-in, those sample recipes are copied into the family's Supabase `recipes` table
-- live internet recipe discovery is not yet enabled
-
-## Current test user
-The database already links Gavin to Page Family → Our House.
-
-## Next phase
-1. Publish this Version 3 build via GitHub Pages.
-2. Test sign-in and syncing on two devices.
-3. Invite the other family members.
-4. Tighten member permissions if desired so non-admin users default to their own household.
-5. Add live recipe discovery/import.
+All Version 3 cloud-sync features remain unchanged.

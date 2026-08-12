@@ -264,7 +264,7 @@ main{padding:22px 18px 96px}
 <body>
 
 <div class="auth-screen" id="authScreen">
-  <div class="auth-card">
+  <div class="auth-card" id="loginCard">
     <div class="logo" style="margin-bottom:14px">🍽️</div>
     <h2>Family Meal Planner</h2>
     <p>Sign in to see your family's shared meal planner.</p>
@@ -279,6 +279,24 @@ main{padding:22px 18px 96px}
       </div>
       <button class="btn" id="loginButton" type="submit" style="width:100%">Sign in</button>
       <div class="auth-error" id="authError"></div>
+    </form>
+  </div>
+
+  <div class="auth-card" id="recoveryCard" style="display:none">
+    <div class="logo" style="margin-bottom:14px">🔐</div>
+    <h2>Choose a new password</h2>
+    <p>Your password-reset link has been recognised. Enter your new password below.</p>
+    <form onsubmit="setNewPassword(event)">
+      <div class="auth-field">
+        <label for="newPassword">New password</label>
+        <input id="newPassword" type="password" autocomplete="new-password" minlength="8" required>
+      </div>
+      <div class="auth-field">
+        <label for="confirmPassword">Confirm new password</label>
+        <input id="confirmPassword" type="password" autocomplete="new-password" minlength="8" required>
+      </div>
+      <button class="btn" id="resetButton" type="submit" style="width:100%">Save new password</button>
+      <div class="auth-error" id="recoveryError"></div>
     </form>
   </div>
 </div>
@@ -841,6 +859,47 @@ async function toggleSharedMeal(id){
    console.error(e); toast("Could not update Family Meals");
  }
 }
+
+function showRecoveryScreen(){
+ document.getElementById("authScreen").classList.remove("hidden");
+ document.getElementById("loginCard").style.display="none";
+ document.getElementById("recoveryCard").style.display="block";
+}
+function showLoginScreen(){
+ document.getElementById("authScreen").classList.remove("hidden");
+ document.getElementById("loginCard").style.display="block";
+ document.getElementById("recoveryCard").style.display="none";
+}
+async function setNewPassword(event){
+ event.preventDefault();
+ const p1=document.getElementById("newPassword").value;
+ const p2=document.getElementById("confirmPassword").value;
+ const errorEl=document.getElementById("recoveryError");
+ const btn=document.getElementById("resetButton");
+ errorEl.textContent="";
+ if(p1!==p2){
+   errorEl.textContent="The two passwords do not match.";
+   return;
+ }
+ if(p1.length<8){
+   errorEl.textContent="Please use at least 8 characters.";
+   return;
+ }
+ btn.disabled=true;
+ btn.textContent="Saving…";
+ const {error}=await db.auth.updateUser({password:p1});
+ btn.disabled=false;
+ btn.textContent="Save new password";
+ if(error){
+   errorEl.textContent=error.message;
+   return;
+ }
+ history.replaceState(null,"",window.location.pathname);
+ toast("Password updated");
+ document.getElementById("recoveryCard").style.display="none";
+ await bootstrapCloud();
+}
+
 async function bootstrapCloud(){
  const {data:{session}}=await db.auth.getSession();
  if(!session){
@@ -911,7 +970,29 @@ function init(){
  renderMeals();
  document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>showView(b.dataset.view)));
  document.getElementById("recipeModal").addEventListener("click",e=>{ if(e.target.id==="recipeModal") closeModal(); });
- bootstrapCloud();
+
+ db.auth.onAuthStateChange((event, session)=>{
+   if(event==="PASSWORD_RECOVERY"){
+     sessionUser=session?.user || null;
+     showRecoveryScreen();
+   }
+ });
+
+ // Recovery links commonly contain auth information in the URL fragment.
+ // Give the Supabase client a moment to process that fragment before normal bootstrap.
+ if(window.location.hash && (window.location.hash.includes("type=recovery") || window.location.hash.includes("access_token="))){
+   setTimeout(async ()=>{
+     const {data:{session}}=await db.auth.getSession();
+     if(session){
+       sessionUser=session.user;
+       showRecoveryScreen();
+     }else{
+       bootstrapCloud();
+     }
+   },250);
+ }else{
+   bootstrapCloud();
+ }
 }
 function showView(name){
  document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active",v.id===name));
