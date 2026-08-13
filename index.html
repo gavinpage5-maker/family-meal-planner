@@ -192,7 +192,7 @@ main{padding:22px 18px 96px}
   .modal-panel{max-height:94vh;border-radius:24px 24px 0 0}
   .modal-img{height:230px;border-radius:24px 24px 0 0}
   .mobile-nav{
-    position:fixed;display:grid;grid-template-columns:repeat(4,1fr);bottom:0;left:0;right:0;background:white;
+    position:fixed;display:grid;grid-template-columns:repeat(5,1fr);bottom:0;left:0;right:0;background:white;
     border-top:1px solid var(--border);z-index:40;padding:7px 8px calc(7px + env(safe-area-inset-bottom))
   }
   .mobile-nav button{border:0;background:white;padding:8px 4px;color:var(--muted);font-weight:800}
@@ -259,6 +259,28 @@ main{padding:22px 18px 96px}
 }
 .sync-status{font-size:.8rem;color:var(--muted)}
 
+
+.discover-toolbar{
+  display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px
+}
+.discover-search{
+  flex:1;min-width:220px;display:flex;gap:8px
+}
+.discover-search input{
+  flex:1;padding:11px 12px;border:1px solid var(--border);border-radius:12px;background:white
+}
+.live-badge{
+  display:inline-flex;align-items:center;gap:5px;background:#e8f2ed;color:var(--brand);
+  border-radius:999px;padding:5px 8px;font-size:.75rem;font-weight:900
+}
+.source-line{
+  color:var(--muted);font-size:.82rem;margin-top:8px
+}
+.loading-box{
+  padding:28px;text-align:center;background:var(--surface);border:1px solid var(--border);
+  border-radius:18px;color:var(--muted)
+}
+
 </style>
 </head>
 <body>
@@ -307,7 +329,7 @@ main{padding:22px 18px 96px}
       <div class="logo">🍽️</div>
       <div>
         <h1>Family Meal Planner</h1>
-        <div class="tagline">Plan dinner without the daily decision <span id="versionMarker" style="opacity:.7">v3.5</span></div>
+        <div class="tagline">Plan dinner without the daily decision <span id="versionMarker" style="opacity:.7">v4.0</span></div>
       </div>
     </div>
     <div class="user-bar" id="userBar" style="display:none">
@@ -317,6 +339,7 @@ main{padding:22px 18px 96px}
     </div>
     <nav>
       <button class="nav-btn active" data-view="browse">Browse</button>
+      <button class="nav-btn" data-view="discover">Discover</button>
       <button class="nav-btn" data-view="planner">My Week</button>
       <button class="nav-btn" data-view="shopping">Shopping</button>
       <button class="nav-btn" data-view="family">Family</button>
@@ -356,6 +379,35 @@ main{padding:22px 18px 96px}
   </div>
   <div class="filters" id="filters"></div>
   <div class="meal-grid" id="mealGrid"></div>
+</section>
+
+
+<section id="discover" class="view">
+  <div class="section-title">
+    <div><h2>Discover live recipes</h2><p>Browse real recipes from TheMealDB and add the ones you like to your family planner.</p></div>
+    <span class="live-badge">● LIVE</span>
+  </div>
+
+  <div class="discover-toolbar">
+    <div class="discover-search">
+      <input id="liveSearchInput" type="search" placeholder="Search e.g. duck, curry, salmon..." onkeydown="if(event.key==='Enter') searchLiveRecipes()">
+      <button class="btn" onclick="searchLiveRecipes()">Search</button>
+    </div>
+  </div>
+
+  <div class="filters" id="liveFilters">
+    <button class="filter-btn active" onclick="loadLiveCategory('Chicken',this)">Chicken</button>
+    <button class="filter-btn" onclick="loadLiveCategory('Seafood',this)">Fish / Seafood</button>
+    <button class="filter-btn" onclick="loadLiveCategory('Vegetarian',this)">Vegetarian</button>
+    <button class="filter-btn" onclick="loadLiveCategory('Beef',this)">Beef</button>
+    <button class="filter-btn" onclick="loadLiveCategory('Lamb',this)">Lamb</button>
+    <button class="filter-btn" onclick="searchLiveRecipes('duck',this)">Duck</button>
+  </div>
+
+  <div id="liveRecipeStatus" class="notice">
+    Live recipes are loaded from TheMealDB. Imported recipes retain source attribution.
+  </div>
+  <div class="meal-grid" id="liveMealGrid"></div>
 </section>
 
 <section id="planner" class="view">
@@ -408,6 +460,7 @@ main{padding:22px 18px 96px}
 
 <div class="mobile-nav">
   <button class="active" data-view="browse">🍲<br>Browse</button>
+  <button data-view="discover">🔎<br>Discover</button>
   <button data-view="planner">📅<br>Week</button>
   <button data-view="shopping">🛒<br>Shop</button>
   <button data-view="family">👨‍👩‍👧‍👦<br>Family</button>
@@ -637,6 +690,8 @@ const recipes = [
 const SUPABASE_URL = "https://oydczlyqrgghhmruqhoz.supabase.co";
 const SUPABASE_KEY = "sb_publishable_mVJBwxLo0cY4G9U64qmLMg_mYQe28oH";
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const THEMEALDB_API = "https://www.themealdb.com/api/json/v1/1";
+let liveMealsCache = {};
 
 let sessionUser = null;
 let familyMember = null;
@@ -788,6 +843,30 @@ async function getRecipeDbId(externalId){
  if(error) throw error;
  return data?.id || null;
 }
+
+async function loadCloudRecipes(){
+ const {data,error}=await db.from("recipes")
+   .select("external_id,title,category,image_url,prep_minutes,cook_minutes,base_servings,ingredients,method,source_name,source_url")
+   .eq("family_id",familyId);
+ if(error) throw error;
+ (data||[]).forEach(row=>{
+   if(recipes.find(r=>r.id===row.external_id)) return;
+   recipes.push({
+     id:row.external_id,
+     title:row.title,
+     category:row.category||"Other",
+     image:row.image_url,
+     prep:row.prep_minutes||0,
+     cook:row.cook_minutes||0,
+     servings:row.base_servings||4,
+     ingredients:row.ingredients||[],
+     method:row.method||[],
+     sourceName:row.source_name,
+     sourceUrl:row.source_url
+   });
+ });
+}
+
 async function ensureRecipesInCloud(){
  const {data:existing,error}=await db
    .from("recipes")
@@ -992,6 +1071,7 @@ async function bootstrapCloud(){
 
    state.activeHousehold=member.household_id || households[0]?.id;
    await ensureRecipesInCloud();
+   await loadCloudRecipes();
    await Promise.all(households.map(h=>loadHouseholdData(h.id)));
    await loadSharedMeals();
 
@@ -1029,6 +1109,241 @@ async function signOut(){
  location.reload();
 }
 
+
+function setLiveStatus(message){
+ const el=document.getElementById("liveRecipeStatus");
+ if(el) el.textContent=message;
+}
+function activateLiveFilter(button){
+ document.querySelectorAll("#liveFilters .filter-btn").forEach(b=>b.classList.remove("active"));
+ if(button) button.classList.add("active");
+}
+async function loadLiveCategory(category,button=null){
+ activateLiveFilter(button);
+ const grid=document.getElementById("liveMealGrid");
+ grid.dataset.loaded="1";
+ grid.innerHTML=`<div class="loading-box">Loading ${category} recipes…</div>`;
+ setLiveStatus(`Loading live ${category} recipes from TheMealDB…`);
+ try{
+   const res=await fetch(`${THEMEALDB_API}/filter.php?c=${encodeURIComponent(category)}`);
+   if(!res.ok) throw new Error(`Recipe service returned ${res.status}`);
+   const data=await res.json();
+   const meals=(data.meals||[]).slice(0,12);
+   renderLiveMealCards(meals);
+   setLiveStatus(`${meals.length} live recipes shown. Choose one to see ingredients and instructions.`);
+ }catch(e){
+   console.error(e);
+   grid.innerHTML=`<div class="loading-box">Could not load live recipes.</div>`;
+   setLiveStatus("The live recipe service could not be reached. Your saved family recipes still work normally.");
+ }
+}
+async function searchLiveRecipes(forcedTerm=null,button=null){
+ activateLiveFilter(button);
+ const input=document.getElementById("liveSearchInput");
+ const term=(forcedTerm || input.value || "").trim();
+ if(!term){ setLiveStatus("Enter something to search for."); return; }
+ if(forcedTerm) input.value=forcedTerm;
+ const grid=document.getElementById("liveMealGrid");
+ grid.dataset.loaded="1";
+ grid.innerHTML=`<div class="loading-box">Searching for “${term}”…</div>`;
+ try{
+   const res=await fetch(`${THEMEALDB_API}/search.php?s=${encodeURIComponent(term)}`);
+   if(!res.ok) throw new Error(`Recipe service returned ${res.status}`);
+   const data=await res.json();
+   const meals=(data.meals||[]).slice(0,12);
+   if(!meals.length){
+     grid.innerHTML=`<div class="loading-box">No recipes found for “${term}”.</div>`;
+     setLiveStatus("Try a different meal, ingredient or meat type.");
+     return;
+   }
+   meals.forEach(m=>liveMealsCache[m.idMeal]=m);
+   renderLiveMealCards(meals);
+   setLiveStatus(`${meals.length} live recipes found for “${term}”.`);
+ }catch(e){
+   console.error(e);
+   grid.innerHTML=`<div class="loading-box">Could not search live recipes.</div>`;
+   setLiveStatus("The live recipe service could not be reached.");
+ }
+}
+function renderLiveMealCards(meals){
+ const grid=document.getElementById("liveMealGrid");
+ grid.innerHTML=meals.map(m=>`
+ <article class="meal-card">
+  <div class="meal-img" style="background-image:url('${m.strMealThumb}')">
+    <span class="badge">${m.strCategory||"Live recipe"}</span>
+  </div>
+  <div class="card-body">
+    <h3>${m.strMeal}</h3>
+    <div class="meta"><span>🌐 TheMealDB</span>${m.strArea?`<span>📍 ${m.strArea}</span>`:""}</div>
+    <div class="card-actions">
+      <button class="btn soft" onclick="openLiveRecipe('${m.idMeal}')">View recipe</button>
+      <button class="btn" onclick="importLiveRecipe('${m.idMeal}',true)">Add to week</button>
+    </div>
+  </div>
+ </article>`).join("");
+}
+async function fetchLiveMealDetails(id){
+ if(liveMealsCache[id] && liveMealsCache[id].strInstructions) return liveMealsCache[id];
+ const res=await fetch(`${THEMEALDB_API}/lookup.php?i=${encodeURIComponent(id)}`);
+ if(!res.ok) throw new Error(`Recipe service returned ${res.status}`);
+ const data=await res.json();
+ const meal=data.meals?.[0];
+ if(!meal) throw new Error("Recipe not found");
+ liveMealsCache[id]=meal;
+ return meal;
+}
+function parseFractionToken(token){
+ if(!token) return null;
+ const unicode={"½":0.5,"¼":0.25,"¾":0.75,"⅓":1/3,"⅔":2/3,"⅛":0.125,"⅜":0.375,"⅝":0.625,"⅞":0.875};
+ if(unicode[token]!==undefined) return unicode[token];
+ if(/^\d+\/\d+$/.test(token)){
+   const [a,b]=token.split("/").map(Number); return b?a/b:null;
+ }
+ const n=Number(token);
+ return Number.isFinite(n)?n:null;
+}
+function parseMeasure(measure){
+ const raw=(measure||"").trim();
+ if(!raw) return {qty:1,unit:""};
+ const normal=raw.replace(/(\d)([½¼¾⅓⅔⅛⅜⅝⅞])/g,"$1 $2").replace(/\s+/g," ").trim();
+ const parts=normal.split(" ");
+ let qty=0, consumed=0;
+ for(let i=0;i<Math.min(2,parts.length);i++){
+   const v=parseFractionToken(parts[i]);
+   if(v===null) break;
+   qty+=v; consumed++;
+ }
+ if(consumed===0){
+   return {qty:1,unit:raw.toLowerCase()==="to taste"?"to taste":raw};
+ }
+ const unit=parts.slice(consumed).join(" ");
+ return {qty,unit};
+}
+function liveMealToRecipe(meal){
+ const ingredients=[];
+ for(let i=1;i<=20;i++){
+   const name=(meal[`strIngredient${i}`]||"").trim();
+   if(!name) continue;
+   const measure=(meal[`strMeasure${i}`]||"").trim();
+   const parsed=parseMeasure(measure);
+   ingredients.push([name,parsed.qty,parsed.unit]);
+ }
+ const method=(meal.strInstructions||"")
+   .split(/\r?\n+/)
+   .map(x=>x.trim())
+   .filter(Boolean);
+ if(method.length===1 && method[0].length>350){
+   const sentences=method[0].split(/(?<=[.!?])\s+(?=[A-Z])/).map(x=>x.trim()).filter(Boolean);
+   if(sentences.length>1) method.splice(0,1,...sentences);
+ }
+ return {
+   id:`mealdb-${meal.idMeal}`,
+   title:meal.strMeal,
+   category:meal.strCategory==="Seafood"?"Fish":(meal.strCategory||"Other"),
+   image:meal.strMealThumb,
+   prep:0,
+   cook:0,
+   servings:4,
+   ingredients,
+   method,
+   sourceName:"TheMealDB",
+   sourceUrl:meal.strSource || `https://www.themealdb.com/meal/${meal.idMeal}`,
+   liveExternalId:meal.idMeal
+ };
+}
+async function ensureLiveRecipeSaved(recipe){
+ const existing=recipes.find(r=>r.id===recipe.id);
+ if(!existing) recipes.push(recipe);
+
+ const {data:found,error:findError}=await db.from("recipes")
+   .select("id")
+   .eq("family_id",familyId)
+   .eq("external_id",recipe.id)
+   .maybeSingle();
+ if(findError) throw findError;
+ if(found) return found.id;
+
+ const {data:inserted,error}=await db.from("recipes").insert({
+   family_id:familyId,
+   external_id:recipe.id,
+   title:recipe.title,
+   category:recipe.category,
+   image_url:recipe.image,
+   prep_minutes:recipe.prep,
+   cook_minutes:recipe.cook,
+   base_servings:recipe.servings,
+   ingredients:recipe.ingredients,
+   method:recipe.method,
+   source_name:recipe.sourceName,
+   source_url:recipe.sourceUrl,
+   is_family_shared:false,
+   created_by:sessionUser.id
+ }).select("id").single();
+ if(error) throw error;
+ return inserted.id;
+}
+async function importLiveRecipe(id,addToWeek=false){
+ try{
+   const meal=await fetchLiveMealDetails(id);
+   const recipe=liveMealToRecipe(meal);
+   await ensureLiveRecipeSaved(recipe);
+   renderMeals();
+   if(addToWeek) quickPlan(recipe.id);
+   else {
+     toast("Recipe imported to your family collection");
+     openRecipe(recipe.id);
+   }
+ }catch(e){
+   console.error(e);
+   toast("Could not import this live recipe");
+ }
+}
+async function openLiveRecipe(id){
+ try{
+   const meal=await fetchLiveMealDetails(id);
+   const recipe=liveMealToRecipe(meal);
+   if(!recipes.find(r=>r.id===recipe.id)) recipes.push(recipe);
+   currentRecipeId=recipe.id;
+   const r=recipe;
+   document.getElementById("modalImg").style.backgroundImage=`url('${r.image}')`;
+   document.getElementById("modalContent").innerHTML=`
+    <h2>${r.title}</h2>
+    <div class="recipe-meta">
+      <span class="meta-pill">${r.category}</span>
+      <span class="meta-pill">Serves ${currentSize()}</span>
+      <span class="live-badge">● LIVE</span>
+    </div>
+    <div class="source-line">Source: TheMealDB${r.sourceUrl?` · <a href="${r.sourceUrl}" target="_blank" rel="noopener">Original recipe</a>`:""}</div>
+    <div class="assign-row">
+      <strong>Add to:</strong>
+      <select id="daySelect">${days.map(d=>`<option>${d}</option>`).join("")}</select>
+      <button class="btn" onclick="importLiveThenAssign('${id}')">Add meal</button>
+      <button class="btn soft" onclick="importLiveRecipe('${id}',false)">Save recipe</button>
+    </div>
+    <div class="recipe-columns">
+      <div><h3>Ingredients</h3><ul class="ingredients">${r.ingredients.map(i=>`<li><strong>${formatQty(scaledQty(i[1],r.servings))}${i[2]?" "+i[2]:""}</strong> ${i[0]}</li>`).join("")}</ul></div>
+      <div><h3>Method</h3><ol class="method">${r.method.map(s=>`<li>${s}</li>`).join("")}</ol></div>
+    </div>`;
+   document.getElementById("recipeModal").classList.add("open");
+ }catch(e){
+   console.error(e);
+   toast("Could not load recipe details");
+ }
+}
+async function importLiveThenAssign(id){
+ try{
+   const day=document.getElementById("daySelect").value;
+   const meal=await fetchLiveMealDetails(id);
+   const recipe=liveMealToRecipe(meal);
+   await ensureLiveRecipeSaved(recipe);
+   await assignMeal(day,recipe.id);
+   closeModal();
+ }catch(e){
+   console.error(e);
+   toast("Could not add this recipe");
+ }
+}
+
 function init(){
  renderFilters();
  renderMeals();
@@ -1052,6 +1367,7 @@ function showView(name){
  if(name==="planner") renderPlanner();
  if(name==="shopping") renderShopping();
  if(name==="family") renderFamily();
+ if(name==="discover" && !document.getElementById("liveMealGrid").dataset.loaded) loadLiveCategory("Chicken");
  window.scrollTo({top:0,behavior:"smooth"});
 }
 function renderHouseholdControls(){
@@ -1117,6 +1433,7 @@ function openRecipe(id){
    <span class="meta-pill">${r.category}</span><span class="meta-pill">Prep ${r.prep} mins</span>
    <span class="meta-pill">Cook ${r.cook} mins</span><span class="meta-pill">Serves ${currentSize()}</span>
   </div>
+  ${r.sourceName?`<div class="source-line">Source: ${r.sourceName}${r.sourceUrl?` · <a href="${r.sourceUrl}" target="_blank" rel="noopener">Original recipe</a>`:""}</div>`:""}
   <div class="assign-row">
    <strong>Add to:</strong>
    <select id="daySelect">${days.map(d=>`<option>${d}</option>`).join("")}</select>

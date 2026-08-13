@@ -1,14 +1,16 @@
-# Family Meal Planner — Version 3.5: Family Accounts
+# Family Meal Planner — Version 4.0: Live Recipe Discovery
 
-Changes:
-- Admin users can see and switch between all family households.
-- Member users load only the household assigned to them.
-- Members cannot switch to another household through the app.
-- The assigned household is shown as a fixed household chip for members.
-- Existing Supabase authentication, cloud meal plans, shopping lists and shared family meals remain intact.
+Adds a Discover area backed by TheMealDB.
 
-Current family setup:
-- Gavin — admin — Our House
-- Toby — member — Son & Partner
+Features:
+- Live Chicken, Fish/Seafood, Vegetarian, Beef and Lamb browsing.
+- Duck and other meals can be found through search.
+- Full live recipe details, images, ingredient lists and instructions.
+- Import a live recipe into the family's Supabase recipe collection.
+- Add a live recipe directly to a day in the weekly planner.
+- Imported recipes appear in the normal recipe collection on future logins.
+- Source attribution and original recipe link are retained.
+- Existing household access rules and cloud sync remain intact.
 
-Note: Version 3.5 enforces this behaviour in the application interface. Supabase Row Level Security can be tightened separately for database-level enforcement.
+Development note:
+TheMealDB test key `1` is used for this prototype. Their API documentation says public production apps should use a supporter/production key.
