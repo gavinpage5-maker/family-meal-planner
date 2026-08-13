@@ -192,7 +192,7 @@ main{padding:22px 18px 96px}
   .modal-panel{max-height:94vh;border-radius:24px 24px 0 0}
   .modal-img{height:230px;border-radius:24px 24px 0 0}
   .mobile-nav{
-    position:fixed;display:grid;grid-template-columns:repeat(5,1fr);bottom:0;left:0;right:0;background:white;
+    position:fixed;display:grid;grid-template-columns:repeat(6,1fr);bottom:0;left:0;right:0;background:white;
     border-top:1px solid var(--border);z-index:40;padding:7px 8px calc(7px + env(safe-area-inset-bottom))
   }
   .mobile-nav button{border:0;background:white;padding:8px 4px;color:var(--muted);font-weight:800}
@@ -281,6 +281,25 @@ main{padding:22px 18px 96px}
   border-radius:18px;color:var(--muted)
 }
 
+
+.recipe-entry-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-field{display:flex;flex-direction:column;gap:6px}
+.form-field.full{grid-column:1/-1}
+.form-field label{font-weight:800}
+.form-field input,.form-field select,.form-field textarea{
+  width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:12px;background:white
+}
+.form-field textarea{min-height:120px;resize:vertical}
+.form-help{color:var(--muted);font-size:.82rem}
+.import-panel,.own-panel{
+  background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:16px
+}
+.import-preview{
+  margin-top:16px;background:var(--surface-2);border-radius:14px;padding:14px;display:none
+}
+@media (max-width:620px){.form-grid{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body>
@@ -329,7 +348,7 @@ main{padding:22px 18px 96px}
       <div class="logo">🍽️</div>
       <div>
         <h1>Family Meal Planner</h1>
-        <div class="tagline">Plan dinner without the daily decision <span id="versionMarker" style="opacity:.7">v4.0</span></div>
+        <div class="tagline">Plan dinner without the daily decision <span id="versionMarker" style="opacity:.7">v4.1</span></div>
       </div>
     </div>
     <div class="user-bar" id="userBar" style="display:none">
@@ -340,6 +359,7 @@ main{padding:22px 18px 96px}
     <nav>
       <button class="nav-btn active" data-view="browse">Browse</button>
       <button class="nav-btn" data-view="discover">Discover</button>
+      <button class="nav-btn" data-view="addrecipe">Add Recipe</button>
       <button class="nav-btn" data-view="planner">My Week</button>
       <button class="nav-btn" data-view="shopping">Shopping</button>
       <button class="nav-btn" data-view="family">Family</button>
@@ -410,6 +430,77 @@ main{padding:22px 18px 96px}
   <div class="meal-grid" id="liveMealGrid"></div>
 </section>
 
+
+<section id="addrecipe" class="view">
+  <div class="section-title">
+    <div><h2>Add a recipe</h2><p>Add a family recipe manually or import one from a website.</p></div>
+  </div>
+
+  <div class="recipe-entry-tabs">
+    <button class="filter-btn active" id="ownRecipeTab" onclick="showRecipeEntryMode('own')">Add your own</button>
+    <button class="filter-btn" id="urlRecipeTab" onclick="showRecipeEntryMode('url')">Import from website</button>
+  </div>
+
+  <div class="own-panel" id="ownRecipePanel">
+    <div class="form-grid">
+      <div class="form-field full"><label>Recipe name</label><input id="ownTitle" placeholder="e.g. Mum's chicken casserole"></div>
+      <div class="form-field"><label>Category</label>
+        <select id="ownCategory">
+          <option>Chicken</option><option>Fish</option><option>Vegetarian</option>
+          <option>Lamb</option><option>Beef</option><option>Duck</option><option>Other</option>
+        </select>
+      </div>
+      <div class="form-field"><label>Servings</label>
+        <select id="ownServings"><option>1</option><option>2</option><option selected>4</option><option>6</option></select>
+      </div>
+      <div class="form-field"><label>Prep time (minutes)</label><input id="ownPrep" type="number" min="0" value="15"></div>
+      <div class="form-field"><label>Cook time (minutes)</label><input id="ownCook" type="number" min="0" value="30"></div>
+      <div class="form-field full">
+        <label>Photo URL (optional)</label><input id="ownImage" placeholder="https://...">
+        <div class="form-help">For a recipe from a book, this can be left blank for now.</div>
+      </div>
+      <div class="form-field full">
+        <label>Ingredients</label>
+        <textarea id="ownIngredients" placeholder="One ingredient per line, for example:
+800 g | Chopped tomatoes
+2 | Onions
+3 cloves | Garlic"></textarea>
+        <div class="form-help">Use: quantity + unit | ingredient. If there is no unit, use: 2 | Onions.</div>
+      </div>
+      <div class="form-field full">
+        <label>Method</label>
+        <textarea id="ownMethod" placeholder="One step per line.
+Add 800 g chopped tomatoes and 3 cloves garlic.
+Simmer for 20 minutes."></textarea>
+      </div>
+    </div>
+    <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" onclick="saveOwnRecipe()">Save to Family Meals</button>
+      <button class="btn soft" onclick="clearOwnRecipeForm()">Clear</button>
+    </div>
+  </div>
+
+  <div class="import-panel" id="urlRecipePanel" style="display:none">
+    <div class="form-field">
+      <label>Recipe webpage</label>
+      <input id="recipeUrl" type="url" placeholder="https://www.example.com/recipe/...">
+      <div class="form-help">We’ll try to read standard recipe data from the page. Some websites block browser imports.</div>
+    </div>
+    <div style="margin-top:12px"><button class="btn" onclick="importRecipeUrl()">Try automatic import</button></div>
+    <div class="import-preview" id="importPreview"></div>
+
+    <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px">
+      <h3 style="margin-top:0">If automatic import is blocked</h3>
+      <p style="color:var(--muted)">Paste the recipe text from the webpage here. We’ll create an editable draft.</p>
+      <div class="form-field">
+        <label>Paste recipe text</label>
+        <textarea id="pastedRecipeText" placeholder="Paste the ingredients and method from the recipe page..."></textarea>
+      </div>
+      <div style="margin-top:10px"><button class="btn soft" onclick="createDraftFromPastedText()">Create editable draft</button></div>
+    </div>
+  </div>
+</section>
+
 <section id="planner" class="view">
   <div class="section-title">
     <div><h2><span id="plannerHouseholdName">Your</span> week</h2><p>One main meal per day, Monday to Sunday.</p></div>
@@ -461,6 +552,7 @@ main{padding:22px 18px 96px}
 <div class="mobile-nav">
   <button class="active" data-view="browse">🍲<br>Browse</button>
   <button data-view="discover">🔎<br>Discover</button>
+  <button data-view="addrecipe">➕<br>Add</button>
   <button data-view="planner">📅<br>Week</button>
   <button data-view="shopping">🛒<br>Shop</button>
   <button data-view="family">👨‍👩‍👧‍👦<br>Family</button>
@@ -1344,6 +1436,162 @@ async function importLiveThenAssign(id){
  }
 }
 
+
+function showRecipeEntryMode(mode){
+ const own=mode==="own";
+ document.getElementById("ownRecipePanel").style.display=own?"block":"none";
+ document.getElementById("urlRecipePanel").style.display=own?"none":"block";
+ document.getElementById("ownRecipeTab").classList.toggle("active",own);
+ document.getElementById("urlRecipeTab").classList.toggle("active",!own);
+}
+function parseOwnIngredientLine(line){
+ const raw=line.trim();
+ if(!raw) return null;
+ let left="",name=raw;
+ if(raw.includes("|")){
+   const bits=raw.split("|");
+   left=bits.shift().trim(); name=bits.join("|").trim();
+ }else{
+   const m=raw.match(/^([0-9¼½¾⅓⅔⅛⅜⅝⅞./\s]+)\s+(.+)$/);
+   if(m){left=m[1].trim();name=m[2].trim();}
+ }
+ let qty=1,unit="";
+ if(left){
+   const bits=left.split(/\s+/);
+   const first=parseFractionToken(bits[0]);
+   if(first!==null){
+     qty=first;
+     if(bits.length>1){
+       const second=parseFractionToken(bits[1]);
+       if(second!==null){qty+=second;unit=bits.slice(2).join(" ");}
+       else unit=bits.slice(1).join(" ");
+     }
+   }else unit=left;
+ }
+ return [name,qty,normaliseUnit(unit)];
+}
+function ownRecipeObject(){
+ const title=document.getElementById("ownTitle").value.trim();
+ if(!title) throw new Error("Please enter a recipe name.");
+ const ingredients=document.getElementById("ownIngredients").value.split(/\r?\n/).map(parseOwnIngredientLine).filter(Boolean);
+ if(!ingredients.length) throw new Error("Please add at least one ingredient.");
+ const method=document.getElementById("ownMethod").value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+ if(!method.length) throw new Error("Please add at least one method step.");
+ return {
+   id:"family-"+crypto.randomUUID(),title,category:document.getElementById("ownCategory").value,
+   image:document.getElementById("ownImage").value.trim() || "https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=1200&q=85",
+   prep:Number(document.getElementById("ownPrep").value)||0,cook:Number(document.getElementById("ownCook").value)||0,
+   servings:Number(document.getElementById("ownServings").value)||4,ingredients,method,
+   sourceName:"Family recipe",sourceUrl:null
+ };
+}
+async function saveOwnRecipe(){
+ try{
+   const r=ownRecipeObject();
+   recipes.push(r);
+   const {data:inserted,error}=await db.from("recipes").insert({
+     family_id:familyId,external_id:r.id,title:r.title,category:r.category,image_url:r.image,
+     prep_minutes:r.prep,cook_minutes:r.cook,base_servings:r.servings,ingredients:r.ingredients,method:r.method,
+     source_name:r.sourceName,source_url:null,is_family_shared:true,created_by:sessionUser.id
+   }).select("id").single();
+   if(error) throw error;
+   await db.from("family_favourites").insert({family_id:familyId,recipe_id:inserted.id,added_by:sessionUser.id});
+   await loadSharedMeals(); renderMeals(); renderFamily(); clearOwnRecipeForm();
+   toast("Family recipe saved"); showView("browse");
+ }catch(e){console.error(e);alert(e.message||"Could not save recipe.");}
+}
+function clearOwnRecipeForm(){
+ ["ownTitle","ownImage","ownIngredients","ownMethod"].forEach(id=>document.getElementById(id).value="");
+ document.getElementById("ownPrep").value=15; document.getElementById("ownCook").value=30; document.getElementById("ownServings").value=4;
+}
+function findRecipeJsonLd(doc){
+ const scripts=[...doc.querySelectorAll('script[type="application/ld+json"]')];
+ for(const s of scripts){
+   try{
+     const parsed=JSON.parse(s.textContent);
+     const stack=Array.isArray(parsed)?[...parsed]:[parsed];
+     while(stack.length){
+       const x=stack.shift();
+       if(!x || typeof x!=="object") continue;
+       const type=x["@type"];
+       if(type==="Recipe" || (Array.isArray(type)&&type.includes("Recipe"))) return x;
+       if(Array.isArray(x["@graph"])) stack.push(...x["@graph"]);
+     }
+   }catch(e){}
+ }
+ return null;
+}
+function recipeFromJsonLd(j,url){
+ const ingredients=(j.recipeIngredient||[]).map(line=>parseOwnIngredientLine(String(line))).filter(Boolean);
+ let method=[];
+ const instr=j.recipeInstructions||[];
+ if(Array.isArray(instr)) method=instr.map(x=>typeof x==="string"?x:(x.text||"")).filter(Boolean);
+ else if(typeof instr==="string") method=instr.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+ let image="";
+ if(typeof j.image==="string") image=j.image;
+ else if(Array.isArray(j.image)) image=typeof j.image[0]==="string"?j.image[0]:(j.image[0]?.url||"");
+ else if(j.image?.url) image=j.image.url;
+ const yields=String(j.recipeYield||"4").match(/\d+/);
+ return {
+   id:"url-"+crypto.randomUUID(),title:j.name||"Imported recipe",category:"Other",
+   image:image||"https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=1200&q=85",
+   prep:0,cook:0,servings:yields?Number(yields[0]):4,ingredients,method,
+   sourceName:new URL(url).hostname.replace(/^www\./,""),sourceUrl:url
+ };
+}
+async function importRecipeUrl(){
+ const url=document.getElementById("recipeUrl").value.trim();
+ const preview=document.getElementById("importPreview");
+ if(!url){alert("Enter a recipe webpage first.");return;}
+ preview.style.display="block"; preview.innerHTML="Trying to import the recipe…";
+ try{
+   const res=await fetch(url,{mode:"cors"});
+   if(!res.ok) throw new Error("Page could not be read");
+   const text=await res.text();
+   const doc=new DOMParser().parseFromString(text,"text/html");
+   const json=findRecipeJsonLd(doc);
+   if(!json) throw new Error("No standard recipe data found");
+   const r=recipeFromJsonLd(json,url);
+   if(!r.ingredients.length || !r.method.length) throw new Error("Recipe data incomplete");
+   window.pendingImportedRecipe=r;
+   preview.innerHTML=`<strong>${r.title}</strong><br>${r.ingredients.length} ingredients · ${r.method.length} method steps
+   <div style="margin-top:10px"><button class="btn small" onclick="savePendingImportedRecipe()">Save this recipe</button></div>`;
+ }catch(e){
+   console.warn(e);
+   preview.innerHTML=`<strong>Automatic import was blocked by this website.</strong><br>Copy the recipe text and paste it into the fallback box below.`;
+ }
+}
+async function savePendingImportedRecipe(){
+ const r=window.pendingImportedRecipe; if(!r)return;
+ try{
+   recipes.push(r);
+   const {error}=await db.from("recipes").insert({
+     family_id:familyId,external_id:r.id,title:r.title,category:r.category,image_url:r.image,
+     prep_minutes:r.prep,cook_minutes:r.cook,base_servings:r.servings,ingredients:r.ingredients,method:r.method,
+     source_name:r.sourceName,source_url:r.sourceUrl,is_family_shared:true,created_by:sessionUser.id
+   });
+   if(error) throw error;
+   renderMeals(); toast("Website recipe imported"); showView("browse");
+ }catch(e){console.error(e);alert("Could not save the imported recipe.");}
+}
+function createDraftFromPastedText(){
+ const text=document.getElementById("pastedRecipeText").value.trim();
+ if(!text){alert("Paste the recipe text first.");return;}
+ const lines=text.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+ let mode="ingredients",ingredients=[],method=[],title="";
+ for(const line of lines){
+   if(!title && line.length<90 && !/\d/.test(line)){title=line;continue;}
+   if(/^(method|instructions|directions|how to make)/i.test(line)){mode="method";continue;}
+   if(/^ingredients/i.test(line)){mode="ingredients";continue;}
+   if(mode==="ingredients" && (/^\d|^[¼½¾⅓⅔⅛⅜⅝⅞]/.test(line))) ingredients.push(line);
+   else method.push(line.replace(/^\d+[.)]\s*/,""));
+ }
+ document.getElementById("ownTitle").value=title||"Imported recipe";
+ document.getElementById("ownIngredients").value=ingredients.join("\n");
+ document.getElementById("ownMethod").value=method.join("\n");
+ showRecipeEntryMode("own"); toast("Draft created — check it before saving");
+}
+
 function init(){
  renderFilters();
  renderMeals();
@@ -1553,14 +1801,42 @@ function renderPlanner(){
   </div>`;
  }).join("");
 }
+function normaliseIngredientName(name){
+ let s=(name||"").trim().toLowerCase().replace(/\s+/g," ");
+ const aliases={
+   "red peppers":"red pepper","green peppers":"green pepper","yellow peppers":"yellow pepper",
+   "onions":"onion","red onions":"red onion","tomatoes":"tomato",
+   "courgettes":"courgette","carrots":"carrot","lemons":"lemon","limes":"lime",
+   "garlic cloves":"garlic","clove garlic":"garlic"
+ };
+ return aliases[s] || s;
+}
+function displayIngredientName(name){
+ const n=normaliseIngredientName(name);
+ return n.charAt(0).toUpperCase()+n.slice(1);
+}
+function normaliseUnit(unit){
+ let u=(unit||"").trim().toLowerCase().replace(/\./g,"");
+ const aliases={
+   "tablespoon":"tbsp","tablespoons":"tbsp","tbs":"tbsp","tbsps":"tbsp",
+   "teaspoon":"tsp","teaspoons":"tsp","tsps":"tsp",
+   "grams":"g","gram":"g","kilograms":"kg","kilogram":"kg",
+   "millilitres":"ml","milliliters":"ml","millilitre":"ml","milliliter":"ml",
+   "litres":"l","liters":"l","litre":"l","liter":"l",
+   "clove":"cloves"
+ };
+ return aliases[u] || u;
+}
 function consolidatedIngredients(){
  const map={};
  days.forEach(day=>{
   const r=recipes.find(x=>x.id===currentPlan()[day]);
   if(!r)return;
   r.ingredients.forEach(([name,qty,unit])=>{
-   const key=(name+"|"+unit).toLowerCase();
-   if(!map[key]) map[key]={name,qty:0,unit,meals:0};
+   const normName=normaliseIngredientName(name);
+   const normUnit=normaliseUnit(unit);
+   const key=normName+"|"+normUnit;
+   if(!map[key]) map[key]={name:displayIngredientName(normName),qty:0,unit:normUnit,meals:0};
    map[key].qty+=scaledQty(qty,r.servings); map[key].meals++;
   });
  });
