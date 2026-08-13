@@ -348,7 +348,7 @@ main{padding:22px 18px 96px}
       <div class="logo">🍽️</div>
       <div>
         <h1>Family Meal Planner</h1>
-        <div class="tagline">Plan dinner without the daily decision <span id="versionMarker" style="opacity:.7">v4.2</span></div>
+        <div class="tagline">Plan dinner without the daily decision <span id="versionMarker" style="opacity:.7">v4.3</span></div>
       </div>
     </div>
     <div class="user-bar" id="userBar" style="display:none">
@@ -395,7 +395,13 @@ main{padding:22px 18px 96px}
   </div>
 
   <div class="section-title">
-    <div><h2>Meal inspiration</h2><p>Tap a meal to see the full recipe.</p></div>
+    <div><h2>Family recipe library</h2><p>Your saved and favourite recipes.</p></div>
+  </div>
+  <div class="discover-toolbar">
+    <div class="discover-search">
+      <input id="browseSearchInput" type="search" placeholder="Search your family recipes..." oninput="renderMeals()">
+      <button class="btn soft" onclick="document.getElementById('browseSearchInput').value='';renderMeals()">Clear</button>
+    </div>
   </div>
   <div class="filters" id="filters"></div>
   <div class="meal-grid" id="mealGrid"></div>
@@ -428,6 +434,9 @@ main{padding:22px 18px 96px}
     Live recipes are loaded from TheMealDB. Imported recipes retain source attribution.
   </div>
   <div class="meal-grid" id="liveMealGrid"></div>
+  <div style="margin-top:16px;text-align:center">
+    <button class="btn soft" id="showMoreLiveButton" onclick="showMoreLiveRecipes()" style="display:none">Show more recipes</button>
+  </div>
 </section>
 
 
@@ -789,6 +798,8 @@ const SUPABASE_KEY = "sb_publishable_mVJBwxLo0cY4G9U64qmLMg_mYQe28oH";
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const THEMEALDB_API = "https://www.themealdb.com/api/json/v1/1";
 let liveMealsCache = {};
+let liveMealsCurrent = [];
+let liveMealsVisible = 24;
 
 let sessionUser = null;
 let familyMember = null;
@@ -1225,9 +1236,9 @@ async function loadLiveCategory(category,button=null){
    const res=await fetch(`${THEMEALDB_API}/filter.php?c=${encodeURIComponent(category)}`);
    if(!res.ok) throw new Error(`Recipe service returned ${res.status}`);
    const data=await res.json();
-   const meals=(data.meals||[]).slice(0,12);
+   const meals=(data.meals||[]);
    renderLiveMealCards(meals);
-   setLiveStatus(`${meals.length} live recipes shown. Choose one to see ingredients and instructions.`);
+   setLiveStatus(`${Math.min(24,meals.length)} of ${meals.length} live recipes shown. Use Show more to keep browsing.`);
  }catch(e){
    console.error(e);
    grid.innerHTML=`<div class="loading-box">Could not load live recipes.</div>`;
@@ -1247,7 +1258,7 @@ async function searchLiveRecipes(forcedTerm=null,button=null){
    const res=await fetch(`${THEMEALDB_API}/search.php?s=${encodeURIComponent(term)}`);
    if(!res.ok) throw new Error(`Recipe service returned ${res.status}`);
    const data=await res.json();
-   const meals=(data.meals||[]).slice(0,12);
+   const meals=(data.meals||[]);
    if(!meals.length){
      grid.innerHTML=`<div class="loading-box">No recipes found for “${term}”.</div>`;
      setLiveStatus("Try a different meal, ingredient or meat type.");
@@ -1262,9 +1273,16 @@ async function searchLiveRecipes(forcedTerm=null,button=null){
    setLiveStatus("The live recipe service could not be reached.");
  }
 }
-function renderLiveMealCards(meals){
+function renderLiveMealCards(meals, reset=true){
+ if(reset){
+   liveMealsCurrent=meals;
+   liveMealsVisible=Math.min(24,meals.length);
+ }else{
+   liveMealsCurrent=meals;
+ }
  const grid=document.getElementById("liveMealGrid");
- grid.innerHTML=meals.map(m=>`
+ const visible=liveMealsCurrent.slice(0,liveMealsVisible);
+ grid.innerHTML=visible.map(m=>`
  <article class="meal-card">
   <div class="meal-img" style="background-image:url('${m.strMealThumb}')">
     <span class="badge">${m.strCategory||"Live recipe"}</span>
@@ -1278,6 +1296,17 @@ function renderLiveMealCards(meals){
     </div>
   </div>
  </article>`).join("");
+ const moreBtn=document.getElementById("showMoreLiveButton");
+ if(moreBtn){
+   moreBtn.style.display=liveMealsVisible<liveMealsCurrent.length?"inline-block":"none";
+   if(liveMealsVisible<liveMealsCurrent.length){
+     moreBtn.textContent=`Show more recipes (${liveMealsCurrent.length-liveMealsVisible} more)`;
+   }
+ }
+}
+function showMoreLiveRecipes(){
+ liveMealsVisible=Math.min(liveMealsVisible+24,liveMealsCurrent.length);
+ renderLiveMealCards(liveMealsCurrent,false);
 }
 async function fetchLiveMealDetails(id){
  if(liveMealsCache[id] && liveMealsCache[id].strInstructions) return liveMealsCache[id];
@@ -1387,7 +1416,7 @@ async function importLiveRecipe(id,addToWeek=false){
    renderMeals();
    if(addToWeek) quickPlan(recipe.id);
    else {
-     toast("Recipe imported to your family collection");
+     toast("Recipe saved to Browse");
      openRecipe(recipe.id);
    }
  }catch(e){
@@ -1415,7 +1444,7 @@ async function openLiveRecipe(id){
       <strong>Add to:</strong>
       <select id="daySelect">${days.map(d=>`<option>${d}</option>`).join("")}</select>
       <button class="btn" onclick="importLiveThenAssign('${id}')">Add meal</button>
-      <button class="btn soft" onclick="importLiveRecipe('${id}',false)">Save recipe</button>
+      <button class="btn soft" onclick="importLiveRecipe('${id}',false)">Save to Browse</button>
     </div>
     <div class="recipe-columns">
       <div><h3>Ingredients</h3><ul class="ingredients">${r.ingredients.map(i=>`<li><strong>${formatQty(scaledQty(i[1],r.servings))}${i[2]?" "+i[2]:""}</strong> ${i[0]}</li>`).join("")}</ul></div>
@@ -1659,8 +1688,18 @@ function renderFilters(){
 }
 function setFilter(f){ activeFilter=f; renderFilters(); renderMeals(); }
 function renderMeals(){
- const meals=recipes.filter(r=>activeFilter==="All"||r.category===activeFilter);
- document.getElementById("mealGrid").innerHTML=meals.map(r=>`
+ const search=(document.getElementById("browseSearchInput")?.value||"").trim().toLowerCase();
+ const meals=recipes.filter(r=>{
+   const categoryOk=activeFilter==="All"||r.category===activeFilter;
+   const searchOk=!search || r.title.toLowerCase().includes(search) || (r.category||"").toLowerCase().includes(search);
+   return categoryOk && searchOk;
+ });
+ const grid=document.getElementById("mealGrid");
+ if(!meals.length){
+   grid.innerHTML=`<div class="loading-box">No family recipes match your search.</div>`;
+   return;
+ }
+ grid.innerHTML=meals.map(r=>`
  <article class="meal-card">
   <div class="meal-img" style="background-image:url('${r.image}')"><span class="badge">${r.category}</span></div>
   <div class="card-body">

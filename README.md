@@ -1,9 +1,10 @@
-# Family Meal Planner — Version 4.2
+# Family Meal Planner — Version 4.3
 
 Changes:
-- Adds a Recipe title field to Import from website.
-- A supplied title is used for automatic website imports.
-- A supplied title is used when pasted recipe text is converted into an editable draft.
-- The resulting draft remains editable before saving.
-- If a URL was supplied with pasted text, the saved recipe retains the website source and attribution.
-- Existing live recipe discovery, family accounts and ingredient normalisation remain intact.
+- Browse is now the curated Family Recipe Library.
+- Browse has its own search box.
+- Category filtering and search work together.
+- Discover now starts with up to 24 live recipes.
+- A Show more button reveals another 24 recipes at a time.
+- Live recipes can be saved into Browse for future use.
+- Existing household accounts, shopping list normalisation, manual recipe entry and website import remain intact.
