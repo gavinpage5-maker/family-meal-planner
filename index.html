@@ -348,7 +348,7 @@ main{padding:22px 18px 96px}
       <div class="logo">🍽️</div>
       <div>
         <h1>Family Meal Planner</h1>
-        <div class="tagline">Plan dinner without the daily decision <span id="versionMarker" style="opacity:.7">v4.1</span></div>
+        <div class="tagline">Plan dinner without the daily decision <span id="versionMarker" style="opacity:.7">v4.2</span></div>
       </div>
     </div>
     <div class="user-bar" id="userBar" style="display:none">
@@ -481,6 +481,11 @@ Simmer for 20 minutes."></textarea>
   </div>
 
   <div class="import-panel" id="urlRecipePanel" style="display:none">
+    <div class="form-field" style="margin-bottom:12px">
+      <label>Recipe title</label>
+      <input id="importRecipeTitle" placeholder="e.g. Chicken & chorizo paella">
+      <div class="form-help">Optional for automatic imports; recommended when you paste recipe text.</div>
+    </div>
     <div class="form-field">
       <label>Recipe webpage</label>
       <input id="recipeUrl" type="url" placeholder="https://www.example.com/recipe/...">
@@ -1482,7 +1487,8 @@ function ownRecipeObject(){
    image:document.getElementById("ownImage").value.trim() || "https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=1200&q=85",
    prep:Number(document.getElementById("ownPrep").value)||0,cook:Number(document.getElementById("ownCook").value)||0,
    servings:Number(document.getElementById("ownServings").value)||4,ingredients,method,
-   sourceName:"Family recipe",sourceUrl:null
+   sourceName:window.pastedDraftSourceUrl ? new URL(window.pastedDraftSourceUrl).hostname.replace(/^www\./,"") : "Family recipe",
+   sourceUrl:window.pastedDraftSourceUrl || null
  };
 }
 async function saveOwnRecipe(){
@@ -1492,11 +1498,12 @@ async function saveOwnRecipe(){
    const {data:inserted,error}=await db.from("recipes").insert({
      family_id:familyId,external_id:r.id,title:r.title,category:r.category,image_url:r.image,
      prep_minutes:r.prep,cook_minutes:r.cook,base_servings:r.servings,ingredients:r.ingredients,method:r.method,
-     source_name:r.sourceName,source_url:null,is_family_shared:true,created_by:sessionUser.id
+     source_name:r.sourceName,source_url:r.sourceUrl,is_family_shared:true,created_by:sessionUser.id
    }).select("id").single();
    if(error) throw error;
    await db.from("family_favourites").insert({family_id:familyId,recipe_id:inserted.id,added_by:sessionUser.id});
    await loadSharedMeals(); renderMeals(); renderFamily(); clearOwnRecipeForm();
+   window.pastedDraftSourceUrl=null;
    toast("Family recipe saved"); showView("browse");
  }catch(e){console.error(e);alert(e.message||"Could not save recipe.");}
 }
@@ -1552,6 +1559,8 @@ async function importRecipeUrl(){
    const json=findRecipeJsonLd(doc);
    if(!json) throw new Error("No standard recipe data found");
    const r=recipeFromJsonLd(json,url);
+   const suppliedTitle=document.getElementById("importRecipeTitle").value.trim();
+   if(suppliedTitle) r.title=suppliedTitle;
    if(!r.ingredients.length || !r.method.length) throw new Error("Recipe data incomplete");
    window.pendingImportedRecipe=r;
    preview.innerHTML=`<strong>${r.title}</strong><br>${r.ingredients.length} ingredients · ${r.method.length} method steps
@@ -1577,8 +1586,10 @@ async function savePendingImportedRecipe(){
 function createDraftFromPastedText(){
  const text=document.getElementById("pastedRecipeText").value.trim();
  if(!text){alert("Paste the recipe text first.");return;}
+ const suppliedTitle=document.getElementById("importRecipeTitle").value.trim();
+ const sourceUrl=document.getElementById("recipeUrl").value.trim();
  const lines=text.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
- let mode="ingredients",ingredients=[],method=[],title="";
+ let mode="ingredients",ingredients=[],method=[],title=suppliedTitle;
  for(const line of lines){
    if(!title && line.length<90 && !/\d/.test(line)){title=line;continue;}
    if(/^(method|instructions|directions|how to make)/i.test(line)){mode="method";continue;}
@@ -1589,6 +1600,7 @@ function createDraftFromPastedText(){
  document.getElementById("ownTitle").value=title||"Imported recipe";
  document.getElementById("ownIngredients").value=ingredients.join("\n");
  document.getElementById("ownMethod").value=method.join("\n");
+ window.pastedDraftSourceUrl=sourceUrl||null;
  showRecipeEntryMode("own"); toast("Draft created — check it before saving");
 }
 
