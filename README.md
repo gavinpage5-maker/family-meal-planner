@@ -1,11 +1,14 @@
-# Family Meal Planner — Version 3.4
+# Family Meal Planner — Version 3.5: Family Accounts
 
-Version 3.4 fixes a JavaScript syntax error that prevented all authentication code from running.
+Changes:
+- Admin users can see and switch between all family households.
+- Member users load only the household assigned to them.
+- Members cannot switch to another household through the app.
+- The assigned household is shown as a fixed household chip for members.
+- Existing Supabase authentication, cloud meal plans, shopping lists and shared family meals remain intact.
 
-It keeps the Version 3.3 authentication improvements:
-- explicit Supabase access/refresh token handling
-- password recovery links open the new-password screen
-- magic links sign users in automatically
-- auth errors are displayed clearly
+Current family setup:
+- Gavin — admin — Our House
+- Toby — member — Son & Partner
 
-The complete JavaScript has been syntax-validated before packaging.
+Note: Version 3.5 enforces this behaviour in the application interface. Supabase Row Level Security can be tightened separately for database-level enforcement.

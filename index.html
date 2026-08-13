@@ -307,7 +307,7 @@ main{padding:22px 18px 96px}
       <div class="logo">🍽️</div>
       <div>
         <h1>Family Meal Planner</h1>
-        <div class="tagline">Plan dinner without the daily decision <span id="versionMarker" style="opacity:.7">v3.4</span></div>
+        <div class="tagline">Plan dinner without the daily decision <span id="versionMarker" style="opacity:.7">v3.5</span></div>
       </div>
     </div>
     <div class="user-bar" id="userBar" style="display:none">
@@ -681,12 +681,20 @@ function mondayOfCurrentWeek(){
 function renderHouseholdSwitcher(){
  const el=document.getElementById("householdSwitcher");
  if(!el) return;
+ const canSwitch=familyMember?.role==="admin" && households.length>1;
  el.innerHTML=households.map(h=>`
-   <button class="household-chip ${h.id===state.activeHousehold?"active":""}" onclick="switchHousehold('${h.id}')">
+   <button class="household-chip ${h.id===state.activeHousehold?"active":""}"
+     ${canSwitch?`onclick="switchHousehold('${h.id}')"`:"disabled"}
+     title="${canSwitch?"Switch household":"Your household"}"
+     style="${canSwitch?"":"cursor:default;opacity:1"}">
      <span>${h.icon||"🏠"}</span><span>${h.name}</span>
    </button>`).join("");
 }
 async function switchHousehold(id){
+ if(familyMember?.role!=="admin" && id!==familyMember?.household_id){
+   toast("You can only manage your own household.");
+   return;
+ }
  state.activeHousehold=id;
  await loadHouseholdData(id);
  renderHouseholdSwitcher();
@@ -966,11 +974,18 @@ async function bootstrapCloud(){
    familyMember=member;
    familyId=member.family_id;
 
-   const {data:hh,error:hhError}=await db
+   let householdQuery=db
      .from("households")
      .select("id,name,icon,default_servings")
-     .eq("family_id",familyId)
-     .order("name");
+     .eq("family_id",familyId);
+
+   // Admins can switch between every household.
+   // Ordinary members only load the household assigned to their family_members row.
+   if(member.role!=="admin"){
+     householdQuery=householdQuery.eq("id",member.household_id);
+   }
+
+   const {data:hh,error:hhError}=await householdQuery.order("name");
    if(hhError) throw hhError;
    households=hh||[];
    households.forEach(h=>state.householdSizes[h.id]=h.default_servings);
