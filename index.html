@@ -307,7 +307,7 @@ main{padding:22px 18px 96px}
       <div class="logo">🍽️</div>
       <div>
         <h1>Family Meal Planner</h1>
-        <div class="tagline">Plan dinner without the daily decision</div>
+        <div class="tagline">Plan dinner without the daily decision <span id="versionMarker" style="opacity:.7">v3.3</span></div>
       </div>
     </div>
     <div class="user-bar" id="userBar" style="display:none">
@@ -860,6 +860,54 @@ async function toggleSharedMeal(id){
  }
 }
 
+
+function parseAuthFragment(){
+ const raw=(window.location.hash || "").replace(/^#/,"");
+ const params=new URLSearchParams(raw);
+ return {
+   access_token:params.get("access_token"),
+   refresh_token:params.get("refresh_token"),
+   type:params.get("type"),
+   error:params.get("error"),
+   error_code:params.get("error_code"),
+   error_description:params.get("error_description")
+ };
+}
+async function handleAuthFragment(){
+ const auth=parseAuthFragment();
+
+ if(auth.error || auth.error_code){
+   showLoginScreen();
+   const msg=auth.error_description || auth.error_code || auth.error;
+   document.getElementById("authError").textContent=decodeURIComponent((msg || "").replace(/\+/g," "));
+   history.replaceState(null,"",window.location.pathname);
+   return true;
+ }
+
+ if(!auth.access_token || !auth.refresh_token) return false;
+
+ const {data,error}=await db.auth.setSession({
+   access_token:auth.access_token,
+   refresh_token:auth.refresh_token
+ });
+ if(error){
+   showLoginScreen();
+   document.getElementById("authError").textContent="This sign-in link could not be used. Please request a new one.";
+   console.error(error);
+   return true;
+ }
+
+ sessionUser=data.session?.user || null;
+
+ if(auth.type==="recovery"){
+   showRecoveryScreen();
+ }else{
+   history.replaceState(null,"",window.location.pathname);
+   await bootstrapCloud();
+ }
+ return true;
+}
+
 function showRecoveryScreen(){
  document.getElementById("authScreen").classList.remove("hidden");
  document.getElementById("loginCard").style.display="none";
@@ -887,16 +935,17 @@ async function setNewPassword(event){
  }
  btn.disabled=true;
  btn.textContent="Saving…";
- const {error}=await db.auth.updateUser({password:p1});
+ const {data,error}=await db.auth.updateUser({password:p1});
  btn.disabled=false;
  btn.textContent="Save new password";
  if(error){
    errorEl.textContent=error.message;
    return;
  }
+ sessionUser=data.user || sessionUser;
  history.replaceState(null,"",window.location.pathname);
- toast("Password updated");
  document.getElementById("recoveryCard").style.display="none";
+ toast("Password updated");
  await bootstrapCloud();
 }
 
@@ -978,33 +1027,9 @@ function init(){
    }
  });
 
- // Supabase email links return auth information in the URL fragment.
- // Password recovery shows the password screen; magic links sign in normally.
- const hash=window.location.hash || "";
- if(hash.includes("access_token=")){
-   setTimeout(async ()=>{
-     const {data:{session}}=await db.auth.getSession();
-     if(hash.includes("type=recovery")){
-       if(session){
-         sessionUser=session.user;
-         showRecoveryScreen();
-       }else{
-         showLoginScreen();
-         document.getElementById("authError").textContent="This password-reset link is invalid or has expired.";
-       }
-     }else{
-       if(session){
-         history.replaceState(null,"",window.location.pathname);
-         await bootstrapCloud();
-       }else{
-         showLoginScreen();
-         document.getElementById("authError").textContent="This sign-in link is invalid or has expired.";
-       }
-     }
-   },500);
- }else{
-   bootstrapCloud();
- }
+ handleAuthFragment().then(handled=>{
+   if(!handled) bootstrapCloud();
+ });
 }
 function showView(name){
  document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active",v.id===name));
