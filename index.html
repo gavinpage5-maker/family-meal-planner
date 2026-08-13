@@ -307,7 +307,7 @@ main{padding:22px 18px 96px}
       <div class="logo">🍽️</div>
       <div>
         <h1>Family Meal Planner</h1>
-        <div class="tagline">Plan dinner without the daily decision <span id="versionMarker" style="opacity:.7">v3.3</span></div>
+        <div class="tagline">Plan dinner without the daily decision <span id="versionMarker" style="opacity:.7">v3.4</span></div>
       </div>
     </div>
     <div class="user-bar" id="userBar" style="display:none">
@@ -1279,7 +1279,7 @@ async function resetTicks(){
    .eq("week_start",mondayOfCurrentWeek());
  if(error) console.error(error);
  renderShopping();
-}; save(); renderShopping(); }
+}
 async function clearWeek(){
  if(!confirm("Clear all meals from this week?")) return;
  const {error}=await db.from("meal_plans").delete()
