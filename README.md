@@ -1,10 +1,15 @@
-# Family Meal Planner — Version 4.3
+# Family Meal Planner — Version 5.1
 
-Changes:
-- Browse is now the curated Family Recipe Library.
-- Browse has its own search box.
-- Category filtering and search work together.
-- Discover now starts with up to 24 live recipes.
-- A Show more button reveals another 24 recipes at a time.
-- Live recipes can be saved into Browse for future use.
-- Existing household accounts, shopping list normalisation, manual recipe entry and website import remain intact.
+Adds:
+- Browse total-time filter: Any, ≤20 mins, ≤30 mins, ≤45 mins, ≤1 hour, 1 hour+.
+- Time filter works together with category and text search.
+- Better imported ingredient formatting:
+  - 1 clove / 2 cloves
+  - 1 breast / 2 breasts
+  - count units such as tins/cans displayed more naturally
+  - cleaner ingredient names
+- Shopping-list unit display uses singular/plural more intelligently.
+- Smart recipe import instructions are tightened to keep packaging/count units structured cleanly.
+
+Note:
+Time filtering is reliable for saved recipes that have prep/cook times. Recipes with no time data only appear under “Any”.

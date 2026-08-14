@@ -318,6 +318,17 @@ main{padding:22px 18px 96px}
   border-radius:999px;padding:5px 8px;font-size:.75rem;font-weight:900
 }
 
+
+.time-filter-wrap{
+  display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0 16px
+}
+.time-filter-label{font-weight:900;margin-right:2px}
+.time-filter-btn{
+  border:1px solid var(--border);background:var(--surface);color:var(--text);
+  padding:8px 11px;border-radius:999px;font-weight:800
+}
+.time-filter-btn.active{background:var(--brand);color:#fff;border-color:var(--brand)}
+
 </style>
 </head>
 <body>
@@ -366,7 +377,7 @@ main{padding:22px 18px 96px}
       <div class="logo">🍽️</div>
       <div>
         <h1>Family Meal Planner</h1>
-        <div class="tagline">Plan dinner without the daily decision <span id="versionMarker" style="opacity:.7">v5.0</span></div>
+        <div class="tagline">Plan dinner without the daily decision <span id="versionMarker" style="opacity:.7">v5.1</span></div>
       </div>
     </div>
     <div class="user-bar" id="userBar" style="display:none">
@@ -422,6 +433,15 @@ main{padding:22px 18px 96px}
     </div>
   </div>
   <div class="filters" id="filters"></div>
+  <div class="time-filter-wrap" id="browseTimeFilters">
+    <span class="time-filter-label">Total time:</span>
+    <button class="time-filter-btn active" data-time="all" onclick="setBrowseTimeFilter('all',this)">Any</button>
+    <button class="time-filter-btn" data-time="20" onclick="setBrowseTimeFilter('20',this)">≤20 mins</button>
+    <button class="time-filter-btn" data-time="30" onclick="setBrowseTimeFilter('30',this)">≤30 mins</button>
+    <button class="time-filter-btn" data-time="45" onclick="setBrowseTimeFilter('45',this)">≤45 mins</button>
+    <button class="time-filter-btn" data-time="60" onclick="setBrowseTimeFilter('60',this)">≤1 hour</button>
+    <button class="time-filter-btn" data-time="over60" onclick="setBrowseTimeFilter('over60',this)">1 hour+</button>
+  </div>
   <div class="meal-grid" id="mealGrid"></div>
 </section>
 
@@ -858,6 +878,7 @@ let state = {
 };
 
 let activeFilter = "All";
+let activeBrowseTimeFilter = "all";
 let currentRecipeId = null;
 
 function save(){}
@@ -1491,7 +1512,7 @@ async function openLiveRecipe(id){
       <button class="btn soft" onclick="importLiveRecipe('${id}',false)">Save to Browse</button>
     </div>
     <div class="recipe-columns">
-      <div><h3>Ingredients</h3><ul class="ingredients">${r.ingredients.map(i=>`<li><strong>${formatQty(scaledQty(i[1],r.servings))}${i[2]?" "+i[2]:""}</strong> ${i[0]}</li>`).join("")}</ul></div>
+      <div><h3>Ingredients</h3><ul class="ingredients">${r.ingredients.map(i=>`<li>${ingredientDisplayLine(i[0],scaledQty(i[1],r.servings),i[2])}</li>`).join("")}</ul></div>
       <div><h3>Method</h3><ol class="method">${r.method.map(s=>`<li>${s}</li>`).join("")}</ol></div>
     </div>`;
    document.getElementById("recipeModal").classList.add("open");
@@ -1551,7 +1572,7 @@ function populateRecipeDraft(r){
  document.getElementById("ownIngredients").value=(r.ingredients||[]).map(i=>{
    const qty=formatQty(Number(i[1])||1);
    const unit=i[2]||"";
-   return `${qty}${unit?" "+unit:""} | ${i[0]}`;
+   return `${qty}${unit?" "+displayIngredientUnit(unit,i[1]):""} | ${cleanIngredientNameForDisplay(i[0])}`;
  }).join("\n");
  document.getElementById("ownMethod").value=(r.method||[]).join("\n");
  window.pastedDraftSourceUrl=r.sourceUrl||null;
@@ -1821,7 +1842,8 @@ function renderMeals(){
  const meals=recipes.filter(r=>{
    const categoryOk=activeFilter==="All"||r.category===activeFilter;
    const searchOk=!search || r.title.toLowerCase().includes(search) || (r.category||"").toLowerCase().includes(search);
-   return categoryOk && searchOk;
+   const timeOk=recipeMatchesTimeFilter(r);
+   return categoryOk && searchOk && timeOk;
  });
  const grid=document.getElementById("mealGrid");
  if(!meals.length){
@@ -1868,7 +1890,7 @@ function openRecipe(id){
    <button class="btn" onclick="assignSelectedDay()">Add meal</button>
   </div>
   <div class="recipe-columns">
-   <div><h3>Ingredients</h3><ul class="ingredients">${r.ingredients.map(i=>`<li><strong>${formatQty(scaledQty(i[1],r.servings))}${i[2]?" "+i[2]:""}</strong> ${i[0]}</li>`).join("")}</ul></div>
+   <div><h3>Ingredients</h3><ul class="ingredients">${r.ingredients.map(i=>`<li>${ingredientDisplayLine(i[0],scaledQty(i[1],r.servings),i[2])}</li>`).join("")}</ul></div>
    <div><h3>Method</h3><ol class="method">${r.method.map(s=>`<li>${renderMethodStep(r,s)}</li>`).join("")}</ol></div>
   </div>`;
  document.getElementById("recipeModal").classList.add("open");
@@ -2003,10 +2025,51 @@ function normaliseUnit(unit){
    "grams":"g","gram":"g","kilograms":"kg","kilogram":"kg",
    "millilitres":"ml","milliliters":"ml","millilitre":"ml","milliliter":"ml",
    "litres":"l","liters":"l","litre":"l","liter":"l",
-   "clove":"cloves"
+   "clove":"cloves","breast":"breasts","breasts":"breasts","fillet":"fillets","fillets":"fillets","tin":"tins","tins":"tins","can":"cans","cans":"cans","piece":"pieces","pieces":"pieces"
  };
  return aliases[u] || u;
 }
+
+function displayIngredientUnit(unit, qty){
+ const u=normaliseUnit(unit);
+ if(!u) return "";
+ const singularMap={
+   "cloves":"clove","breasts":"breast","fillets":"fillet","bunches":"bunch",
+   "cans":"can","tins":"tin","pieces":"piece"
+ };
+ if(Math.abs(Number(qty)-1)<0.0001 && singularMap[u]) return singularMap[u];
+ return u;
+}
+function cleanIngredientNameForDisplay(name){
+ let s=(name||"").trim().replace(/\s+/g," ");
+ // Fix a few recurring imported constructions without changing meaning.
+ s=s.replace(/^tin\s+/i,"");
+ s=s.replace(/^can\s+/i,"");
+ return s;
+}
+function ingredientDisplayLine(name,qty,unit){
+ const q=formatQty(Number(qty));
+ const u=displayIngredientUnit(unit,qty);
+ let n=cleanIngredientNameForDisplay(name);
+ let amount=`${q}${u?" "+u:""}`;
+ if(u==="tin" || u==="can") amount=`${q} ${u} of`;
+ return `${amount} ${n}`.replace(/\s+/g," ").trim();
+}
+function setBrowseTimeFilter(value,button){
+ activeBrowseTimeFilter=value;
+ document.querySelectorAll("#browseTimeFilters .time-filter-btn").forEach(b=>b.classList.remove("active"));
+ if(button) button.classList.add("active");
+ renderMeals();
+}
+function recipeMatchesTimeFilter(r){
+ if(activeBrowseTimeFilter==="all") return true;
+ const total=(Number(r.prep)||0)+(Number(r.cook)||0);
+ // If an imported recipe has no timing data, only show it for "Any".
+ if(total<=0) return false;
+ if(activeBrowseTimeFilter==="over60") return total>60;
+ return total<=Number(activeBrowseTimeFilter);
+}
+
 function consolidatedIngredients(){
  const map={};
  days.forEach(day=>{
